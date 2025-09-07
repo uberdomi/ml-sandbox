@@ -1,4 +1,4 @@
-version: "3"
+name: ml-sandbox
 services:
   sandbox:
     build: .
