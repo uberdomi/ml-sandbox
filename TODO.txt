@@ -1,0 +1,5 @@
+- Examine the i2dl scripts
+- Write own utilites
+- Write a sample autoencoder
+- Add some tests?
+- Adjust readme
