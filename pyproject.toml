@@ -15,20 +15,7 @@ maintainers = [
     {name = "Dominik Bereżański", email = "domberez@gmail.com"},
     {name = "Paul Hoheisel", email = "paul.hoheisel@example.com"}
 ]
-license = {text = "MIT"}
 keywords = ["machine-learning", "data-science", "python", "jupyter"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Information Analysis",
-    "Topic :: Software Development :: Libraries :: Application Frameworks",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Software Development :: Testing",
-]
 # The required packages for the project
 requires-python = ">=3.8"
 dependencies = [
@@ -51,8 +38,8 @@ Documentation = "https://github.com/paulhoheisel/ml-sandbox#readme"
 [tool.setuptools]
 packages = ["src"]
 
-[tool.setuptools.package-dir]
-"" = "src"
+# [tool.setuptools.package-dir]
+# "" = "src"
 
 # Pytest configuration
 [tool.pytest.ini_options]
