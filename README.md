@@ -21,12 +21,12 @@ Ein Docker-basiertes Machine Learning Playground-Setup.
 
 ## 📂 Struktur
 - `notebooks/` → deine Experimente
-- `requirements.txt` → Python-Pakete
+- `pyproject.toml` → Python-Pakete
 - `Dockerfile` → Umgebung
 - `docker-compose.yml` → einfacher Start
 
 ## 🛠 Anpassungen
-- Weitere Pakete in `requirements.txt` eintragen.
+- Weitere Pakete in `pyproject.toml` eintragen.
 - Container neu bauen:  
   ```bash
   docker-compose build

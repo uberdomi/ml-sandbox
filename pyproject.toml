@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml-sandbox"
+version = "0.1.0"
+description = "A machine learning sandbox project for experimentation and learning"
+readme = "README.md"
+authors = [
+    {name = "Dominik Bereżański", email = "domberez@gmail.com"},
+    {name = "Paul Hoheisel", email = "paul.hoheisel@example.com"}
+]
+maintainers = [
+    {name = "Dominik Bereżański", email = "domberez@gmail.com"},
+    {name = "Paul Hoheisel", email = "paul.hoheisel@example.com"}
+]
+license = {text = "MIT"}
+keywords = ["machine-learning", "data-science", "python", "jupyter"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Testing",
+]
+# The required packages for the project
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scikit-learn",
+    "jupyterlab",
+    "seaborn",
+    "pytest>=6.0",
+    "torch",
+]
+
+[project.urls]
+Homepage = "https://https://github.com/paulhoheisel/ml-sandbox"
+Repository = "https://github.com/paulhoheisel/ml-sandbox"
+Documentation = "https://github.com/paulhoheisel/ml-sandbox#readme"
+
+# Main directory for the source code
+[tool.setuptools]
+packages = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
