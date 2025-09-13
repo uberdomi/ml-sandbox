@@ -62,3 +62,9 @@ maildir
 # IDE files
 .vscode/
 .idea/
+
+# Saved models
+*.pth
+*.p
+*.model
+*.empty
