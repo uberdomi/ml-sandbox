@@ -30,7 +30,9 @@ from .datasets import (
 # Import enums and configuration
 from .enums import (
     DatasetInfo,
+    DatasetMetadata,
     CommonDatasets,
+    Datasets,
 )
 
 # Import download utilities
@@ -53,7 +55,9 @@ __all__ = [
     
     # Configuration and metadata
     "DatasetInfo",
+    "DatasetMetadata", 
     "CommonDatasets",
+    "Datasets",
     
     # Utility functions
     "download_url",
@@ -66,7 +70,7 @@ __all__ = [
 DATASETS = CommonDatasets
 
 # Quick access to dataset info
-def get_dataset_info(dataset_name: str) -> DatasetInfo:
+def get_dataset_info(dataset_name: str) -> DatasetMetadata:
     """
     Get dataset information by name.
     
@@ -74,17 +78,27 @@ def get_dataset_info(dataset_name: str) -> DatasetInfo:
         dataset_name: Name of the dataset (case-insensitive)
         
     Returns:
-        DatasetInfo object with metadata
+        DatasetMetadata object with high-level dataset information
         
     Example:
         info = get_dataset_info("mnist")
         print(f"Classes: {info.classes}")
     """
+    # Normalize dataset name for lookup
     dataset_name = dataset_name.upper().replace("-", "_")
+    
+    # Handle alternative names
+    name_mapping = {
+        "FASHION_MNIST": "FASHION_MNIST",
+        "CIFAR_10": "CIFAR10",
+        "CIFAR10": "CIFAR10"
+    }
+    dataset_name = name_mapping.get(dataset_name, dataset_name)
+    
     try:
-        return getattr(CommonDatasets, dataset_name).value
+        return getattr(Datasets, dataset_name).value
     except AttributeError:
-        available = [d.name for d in CommonDatasets]
+        available = [d.name for d in Datasets]
         raise ValueError(f"Dataset '{dataset_name}' not found. Available: {available}")
 
 # Quick dataset factory function
@@ -92,7 +106,8 @@ def create_dataset(dataset_name: str, train: bool = True, **kwargs):
     """
     Factory function to create dataset instances by name.
     
-    Datasets now download by default. Use force_download=True to re-download.
+    Uses the new Datasets enum for consistent naming conventions.
+    Datasets download by default. Use force_download=True to re-download.
     
     Args:
         dataset_name: Name of the dataset (case-insensitive)
@@ -106,18 +121,30 @@ def create_dataset(dataset_name: str, train: bool = True, **kwargs):
         train_set = create_dataset("mnist", train=True)
         test_set = create_dataset("fashion-mnist", train=False, force_download=True)
     """
-    dataset_name = dataset_name.lower().replace("-", "_")
+    # Normalize dataset name and create mapping from enum names to classes
+    dataset_name_normalized = dataset_name.lower().replace("-", "_")
     
+    # Create mapping based on our Datasets enum
     dataset_map = {
         "mnist": MnistDataset,
         "fashion_mnist": FashionMnistDataset,
         "cifar10": Cifar10Dataset,
-        "cifar_10": Cifar10Dataset,  # Alternative name
     }
     
-    if dataset_name not in dataset_map:
-        available = list(dataset_map.keys())
+    # Handle alternative names
+    alternative_names = {
+        "cifar_10": "cifar10",
+        "fashion-mnist": "fashion_mnist",
+        "cifar-10": "cifar10",
+    }
+    
+    # Use alternative name if it exists
+    lookup_name = alternative_names.get(dataset_name_normalized, dataset_name_normalized)
+    
+    if lookup_name not in dataset_map:
+        # Show available names from our Datasets enum
+        available = [d.value.name for d in Datasets]
         raise ValueError(f"Dataset '{dataset_name}' not supported. Available: {available}")
     
-    dataset_class = dataset_map[dataset_name]
+    dataset_class = dataset_map[lookup_name]
     return dataset_class(train=train, **kwargs)

@@ -515,8 +515,9 @@ class TestPyTorchIntegration:
                 # Verify batch properties
                 assert batch_images.shape[0] == batch_size
                 assert batch_labels.shape[0] == batch_size
-                assert batch_images.device == device
-                assert batch_labels.device == device
+                # Check device type matches (handles cuda:0 vs cuda differences)
+                assert batch_images.device.type == device.type
+                assert batch_labels.device.type == device.type
                 
                 logger.info(f"DataLoader test passed: batch_size={batch_size}, device={device}")
                 

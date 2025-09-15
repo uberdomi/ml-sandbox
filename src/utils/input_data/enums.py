@@ -20,6 +20,17 @@ class DatasetInfo:
     license: str = ""
     citation: str = ""
 
+@dataclass
+class DatasetMetadata:
+    """High-level metadata about a complete dataset."""
+    name: str
+    description: str
+    classes: list[str]
+    num_classes: int
+    image_shape: tuple[int, ...]
+    license: str = ""
+    citation: str = ""
+
 
 class CommonDatasets(Enum):
     """Enum containing common ML datasets with their download information."""
@@ -187,4 +198,40 @@ class CommonDatasets(Enum):
         md5="91f7769df0f17e558f3565bffb0c7dfb",
         description="STL-10 dataset (96x96 color images, 10 classes)",
         citation="Coates, A., Ng, A., & Lee, H. (2011). STL-10 dataset."
+    )
+
+
+class Datasets(Enum):
+    """Enum containing dataset-level metadata for the supported datasets."""
+    
+    MNIST = DatasetMetadata(
+        name="MNIST",
+        description="MNIST database of handwritten digits (28x28 grayscale images)",
+        classes=["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+        num_classes=10,
+        image_shape=(1, 28, 28),
+        license="Creative Commons Attribution-Share Alike 3.0",
+        citation="LeCun, Y. (1998). The MNIST database of handwritten digits."
+    )
+    
+    FASHION_MNIST = DatasetMetadata(
+        name="Fashion-MNIST",
+        description="Fashion-MNIST dataset of clothing images (28x28 grayscale images)",
+        classes=["T-shirt/top", "Trouser", "Pullover", "Dress", "Coat", 
+                "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"],
+        num_classes=10,
+        image_shape=(1, 28, 28),
+        license="MIT License",
+        citation="Xiao, H., Rasul, K., & Vollgraf, R. (2017). Fashion-MNIST: a Novel Image Dataset for Benchmarking Machine Learning Algorithms."
+    )
+    
+    CIFAR10 = DatasetMetadata(
+        name="CIFAR-10",
+        description="CIFAR-10 dataset of natural images (32x32 color images)",
+        classes=["airplane", "automobile", "bird", "cat", "deer", 
+                "dog", "frog", "horse", "ship", "truck"],
+        num_classes=10,
+        image_shape=(3, 32, 32),
+        license="MIT License",
+        citation="Krizhevsky, A. (2009). Learning multiple layers of features from tiny images."
     )
