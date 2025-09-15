@@ -27,7 +27,9 @@ dependencies = [
     "seaborn",
     "pytest>=6.0",
     "torch",
+    "torchvision",
     "tqdm",
+    "pillow",
 ]
 
 [project.urls]
