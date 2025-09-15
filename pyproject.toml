@@ -47,7 +47,16 @@ packages = ["src"]
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --strict-markers --strict-config"
+# Enhanced options: show durations of 5 slowest tests, strict markers, and detailed output
+addopts = [
+    "-ra",                    # Show extra test summary info for all except passed
+    "-q",                     # Quiet mode
+    "--strict-markers",       # Treat unregistered markers as errors
+    "--strict-config",        # Treat config warnings as errors
+    "--durations=5",          # Show 5 slowest test durations
+    "--tb=short",             # Shorter traceback format
+    "--disable-warnings",     # Disable pytest warnings (can be overridden with -W)
+]
 testpaths = [
     "tests",
 ]
@@ -55,3 +64,30 @@ python_files = [
     "test_*.py",
     "*_test.py",
 ]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+# Test markers for organizing and filtering tests
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "download: marks tests that require internet connection (deselect with '-m \"not download\"')",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "unit: marks tests as unit tests",
+    "mnist: marks tests specific to MNIST dataset",
+    "fashion_mnist: marks tests specific to Fashion-MNIST dataset", 
+    "cifar10: marks tests specific to CIFAR-10 dataset",
+    "transform: marks tests that test data transformations",
+    "dataset_api: marks tests for the dataset API functions",
+    "error_handling: marks tests for error conditions",
+]
+# Filter warnings
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "error::FutureWarning",  # Treat FutureWarnings as errors to catch API changes
+]
+# Minimum test coverage (if using pytest-cov)
+# addopts = [..., "--cov=src", "--cov-report=term-missing", "--cov-fail-under=80"]
