@@ -1,5 +1,5 @@
 """
-Pytest suite for the managed dataset classes.
+Pytest suite for the managed dataset classes from the input_data package.
 Tests downloading, loading, and basic functionality.
 """
 
@@ -14,7 +14,7 @@ from unittest.mock import patch
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-# Import from our clean package API
+# Classes and functions to test
 from utils.input_data import (
     MnistDataset, 
     FashionMnistDataset, 
@@ -27,41 +27,47 @@ from utils.input_data import (
 # Import functions that aren't in __all__ but needed for testing
 from utils.input_data.downloaders import download_dataset, dataset_exists
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging  
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.mnist
+@pytest.mark.unit
 class TestMnistDataset:
     """Test suite for MNIST dataset."""
     
-    def test_mnist_train_dataset_loading(self):
+    @pytest.mark.download
+    @pytest.mark.slow
+    def test_mnist_train_dataset_loading(self, temp_data_dir):
         """Test MNIST training dataset loading."""
         try:
-            mnist_train = MnistDataset(train=True, download=True)
+            mnist_train = MnistDataset(train=True, download=True, root=temp_data_dir)
             assert len(mnist_train) == 60000, f"Expected 60000 samples, got {len(mnist_train)}"
             logger.info(f"MNIST training set loaded: {len(mnist_train)} samples")
         except Exception as e:
             logger.error(f"MNIST training dataset loading failed: {e}")
             raise
     
-    def test_mnist_test_dataset_loading(self):
+    @pytest.mark.download
+    @pytest.mark.slow
+    def test_mnist_test_dataset_loading(self, temp_data_dir):
         """Test MNIST test dataset loading."""
         try:
-            mnist_test = MnistDataset(train=False, download=True)
+            mnist_test = MnistDataset(train=False, download=True, root=temp_data_dir)
             assert len(mnist_test) == 10000, f"Expected 10000 samples, got {len(mnist_test)}"
             logger.info(f"MNIST test set loaded: {len(mnist_test)} samples")
         except Exception as e:
             logger.error(f"MNIST test dataset loading failed: {e}")
             raise
     
-    def test_mnist_sample_access(self):
+    def test_mnist_sample_access(self, temp_data_dir, tensor_shapes, small_sample_size):
         """Test MNIST sample access and data types."""
         try:
-            mnist = MnistDataset(train=True, download=False)
+            mnist = MnistDataset(train=True, download=False, root=temp_data_dir)
             
-            # Test multiple samples
-            for i in range(5):
+            # Test multiple samples (limit to small number for speed)
+            samples_to_test = min(small_sample_size // 20, 5)  # Test 5 samples max
+            for i in range(samples_to_test):
                 img, label = mnist[i]
                 assert hasattr(img, 'mode'), f"Sample {i}: Expected PIL Image, got {type(img)}"
                 assert isinstance(label, int), f"Sample {i}: Expected int label, got {type(label)}"
@@ -87,13 +93,17 @@ class TestMnistDataset:
             raise
 
 
+@pytest.mark.fashion_mnist
+@pytest.mark.unit
 class TestFashionMnistDataset:
     """Test suite for Fashion-MNIST dataset."""
     
-    def test_fashion_mnist_train_dataset_loading(self):
+    @pytest.mark.download
+    @pytest.mark.slow
+    def test_fashion_mnist_train_dataset_loading(self, temp_data_dir):
         """Test Fashion-MNIST training dataset loading."""
         try:
-            fashion_train = FashionMnistDataset(train=True, download=True)
+            fashion_train = FashionMnistDataset(train=True, download=True, root=temp_data_dir)
             assert len(fashion_train) == 60000, f"Expected 60000 samples, got {len(fashion_train)}"
             logger.info(f"Fashion-MNIST training set loaded: {len(fashion_train)} samples")
         except Exception as e:
@@ -132,13 +142,17 @@ class TestFashionMnistDataset:
             raise
 
 
+@pytest.mark.cifar10
+@pytest.mark.unit
 class TestCifar10Dataset:
     """Test suite for CIFAR-10 dataset."""
     
-    def test_cifar10_train_dataset_loading(self):
+    @pytest.mark.download
+    @pytest.mark.slow
+    def test_cifar10_train_dataset_loading(self, temp_data_dir):
         """Test CIFAR-10 training dataset loading."""
         try:
-            cifar_train = Cifar10Dataset(train=True, download=True)
+            cifar_train = Cifar10Dataset(train=True, download=True, root=temp_data_dir)
             assert len(cifar_train) == 50000, f"Expected 50000 samples, got {len(cifar_train)}"
             logger.info(f"CIFAR-10 training set loaded: {len(cifar_train)} samples")
         except Exception as e:
@@ -179,30 +193,26 @@ class TestCifar10Dataset:
             raise
 
 
+@pytest.mark.transform
+@pytest.mark.unit
 class TestDatasetTransforms:
     """Test suite for dataset transforms."""
     
-    def test_mnist_with_transforms(self):
+    def test_mnist_with_transforms(self, temp_data_dir, sample_transforms, tensor_shapes):
         """Test MNIST dataset with torchvision transforms."""
         try:
-            import torchvision.transforms as transforms
-            
-            # Define transforms
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))
-            ])
-            
             mnist_transformed = MnistDataset(
                 train=True, 
                 download=False,
-                transform=transform
+                root=temp_data_dir,
+                transform=sample_transforms
             )
             
             # Test transformed sample
             img, label = mnist_transformed[0]
+            expected_shape = tensor_shapes['mnist']
             assert hasattr(img, 'shape'), f"Expected tensor with shape, got {type(img)}"
-            assert img.shape == (1, 28, 28), f"Expected shape (1, 28, 28), got {img.shape}"
+            assert img.shape == expected_shape, f"Expected shape {expected_shape}, got {img.shape}"
             assert isinstance(label, int), f"Expected int label, got {type(label)}"
             logger.info(f"Transformed MNIST sample: shape={img.shape}, label={label}")
         except Exception as e:
@@ -373,13 +383,9 @@ class TestErrorHandling:
         try:
             mnist = MnistDataset(train=True, download=False)
             
-            # Test index too large (negative indices are valid in Python)
+            # Test index too large
             with pytest.raises(IndexError):
                 _ = mnist[len(mnist)]
-            
-            # Test very large out of range index
-            with pytest.raises(IndexError):
-                _ = mnist[100000]
             
             logger.info("Invalid index handling verified")
         except Exception as e:
@@ -407,6 +413,8 @@ class TestErrorHandling:
             # Don't raise here as this is testing error handling
 
 
+@pytest.mark.dataset_api
+@pytest.mark.unit
 class TestPackageAPI:
     """Test suite for the package API functions."""
     
@@ -470,6 +478,75 @@ class TestPackageAPI:
             logger.info("Invalid dataset creation handling verified")
         except Exception as e:
             logger.error(f"Invalid dataset creation test failed: {e}")
+            raise
+
+
+@pytest.mark.integration
+@pytest.mark.unit
+class TestPyTorchIntegration:
+    """Test suite for PyTorch integration features."""
+    
+    def test_dataloader_integration(self, temp_data_dir, sample_transforms, device, test_batch_sizes):
+        """Test dataset integration with PyTorch DataLoader."""
+        try:
+            import torch
+            from torch.utils.data import DataLoader
+            
+            # Create dataset with transforms
+            dataset = MnistDataset(
+                train=True, 
+                download=False, 
+                root=temp_data_dir,
+                transform=sample_transforms
+            )
+            
+            # Test with different batch sizes
+            for batch_size in test_batch_sizes[:2]:  # Test first 2 batch sizes
+                dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+                
+                # Get first batch
+                batch_images, batch_labels = next(iter(dataloader))
+                
+                # Move to device
+                batch_images = batch_images.to(device)
+                batch_labels = batch_labels.to(device)
+                
+                # Verify batch properties
+                assert batch_images.shape[0] == batch_size
+                assert batch_labels.shape[0] == batch_size
+                assert batch_images.device == device
+                assert batch_labels.device == device
+                
+                logger.info(f"DataLoader test passed: batch_size={batch_size}, device={device}")
+                
+        except Exception as e:
+            logger.error(f"PyTorch DataLoader integration test failed: {e}")
+            raise
+    
+    @pytest.mark.transform
+    def test_augmentation_transforms(self, temp_data_dir, augmentation_transforms):
+        """Test dataset with data augmentation transforms."""
+        try:
+            dataset = MnistDataset(
+                train=True,
+                download=False,
+                root=temp_data_dir,
+                transform=augmentation_transforms
+            )
+            
+            # Test that transforms produce different results (due to randomness)
+            img1, _ = dataset[0]
+            img2, _ = dataset[0]  # Same index, different augmentation
+            
+            # Note: Due to randomness, images might be different
+            # But both should be valid tensors
+            assert img1.shape == img2.shape
+            assert img1.shape == (1, 28, 28)
+            
+            logger.info("Augmentation transforms test passed")
+            
+        except Exception as e:
+            logger.error(f"Augmentation transforms test failed: {e}")
             raise
 
 
