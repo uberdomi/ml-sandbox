@@ -68,3 +68,6 @@ maildir
 *.p
 *.model
 *.empty
+
+# Downloaded data
+data/
