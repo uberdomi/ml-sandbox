@@ -192,8 +192,8 @@ class MnistDataset(ManagedDataset):
         """
         img, target = self.data[index], int(self.targets[index])
         
-        # Convert to PIL Image
-        img = Image.fromarray(img, mode='L')
+        # Convert to PIL Image (L mode auto-detected for uint8 grayscale)
+        img = Image.fromarray(img)
         
         # Apply transforms
         img, target = self._apply_transforms(img, target)
@@ -301,8 +301,8 @@ class FashionMnistDataset(ManagedDataset):
         """
         img, target = self.data[index], int(self.targets[index])
         
-        # Convert to PIL Image
-        img = Image.fromarray(img, mode='L')
+        # Convert to PIL Image (L mode auto-detected for uint8 grayscale)
+        img = Image.fromarray(img)
         
         # Apply transforms
         img, target = self._apply_transforms(img, target)
