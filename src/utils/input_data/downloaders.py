@@ -28,6 +28,8 @@ def gen_bar_updater():
         progress_bytes = count * block_size
         pbar.update(progress_bytes - pbar.n)
 
+    # Attach the progress bar to the function so we can close it later
+    bar_update.pbar = pbar
     return bar_update
 
 def calculate_md5(file_path: Union[str, Path], chunk_size: int = 1024 * 1024) -> str:
@@ -98,7 +100,7 @@ def download_url(url: str, root: Union[str, Path], filename: Optional[str] = Non
     
     try:
         # Create progress bar updater
-        progress_updater = gen_bar_updater()
+        progress_hook = gen_bar_updater()
         
         # Add User-Agent header to avoid blocking by creating an opener
         opener = urllib.request.build_opener()
@@ -106,10 +108,10 @@ def download_url(url: str, root: Union[str, Path], filename: Optional[str] = Non
         urllib.request.install_opener(opener)
         
         # Download with progress bar
-        urllib.request.urlretrieve(url, str(file_path), reporthook=progress_updater)
+        urllib.request.urlretrieve(url, str(file_path), reporthook=progress_hook)
         
         # Close the progress bar
-        progress_updater.__self__.close()
+        progress_hook.pbar.close()
                     
     except urllib.error.URLError as e:
         if file_path.exists():
@@ -248,30 +250,39 @@ def download_and_extract_archive(url: str, download_root: Union[str, Path],
     extract_archive(archive_path, extract_root, remove_finished)
 
 
-def dataset_exists(dataset_info: DatasetInfo, root: Union[str, Path]) -> bool:
+def dataset_exists(dataset_info, root: Union[str, Path]) -> bool:
     """
     Check if a dataset file already exists and is valid.
     
     Args:
-        dataset_info: DatasetInfo enum value containing file information
+        dataset_info: DatasetInfo object or CommonDatasets enum value
         root: Directory where the dataset should be located
         
     Returns:
         True if dataset exists and passes integrity check
     """
     root = Path(root)
-    file_path = root / dataset_info.filename
     
-    return check_integrity(file_path, dataset_info.md5, dataset_info.sha256)
+    # Handle both DatasetInfo objects and CommonDatasets enum values
+    if hasattr(dataset_info, 'value'):
+        # It's a CommonDatasets enum, get the DatasetInfo
+        info = dataset_info.value
+    else:
+        # It's already a DatasetInfo object
+        info = dataset_info
+    
+    file_path = root / info.filename
+    
+    return check_integrity(file_path, info.md5, info.sha256)
 
 
-def download_dataset(dataset_info: DatasetInfo, root: Union[str, Path],
+def download_dataset(dataset_info, root: Union[str, Path],
                     force_download: bool = False, verbose: bool = True) -> Path:
     """
-    Download a dataset using the information from DatasetInfo enum.
+    Download a dataset using the information from DatasetInfo or CommonDatasets enum.
     
     Args:
-        dataset_info: DatasetInfo enum value
+        dataset_info: DatasetInfo object or CommonDatasets enum value
         root: Directory to download to
         force_download: Whether to re-download even if file exists
         verbose: Whether to print progress information
@@ -285,26 +296,34 @@ def download_dataset(dataset_info: DatasetInfo, root: Union[str, Path],
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     
-    file_path = root / dataset_info.filename
+    # Handle both DatasetInfo objects and CommonDatasets enum values
+    if hasattr(dataset_info, 'value'):
+        # It's a CommonDatasets enum, get the DatasetInfo
+        info = dataset_info.value
+    else:
+        # It's already a DatasetInfo object
+        info = dataset_info
+    
+    file_path = root / info.filename
     
     # Check if already exists and valid
     if not force_download and dataset_exists(dataset_info, root):
         if verbose:
-            print(f"Dataset {dataset_info.name} already exists and is valid: {file_path}")
+            print(f"Dataset {info.name} already exists and is valid: {file_path}")
         return file_path
     
     if verbose:
-        print(f"Downloading {dataset_info.name}...")
-        if dataset_info.description:
-            print(f"Description: {dataset_info.description}")
+        print(f"Downloading {info.name}...")
+        if info.description:
+            print(f"Description: {info.description}")
     
     # Try each mirror URL until one succeeds
     last_error = None
-    for url in dataset_info.urls:
+    for url in info.urls:
         try:
             return download_url(
-                url, root, dataset_info.filename,
-                dataset_info.md5, dataset_info.sha256
+                url, root, info.filename,
+                info.md5, info.sha256
             )
         except Exception as e:
             last_error = e
@@ -313,5 +332,5 @@ def download_dataset(dataset_info: DatasetInfo, root: Union[str, Path],
             continue
     
     # If we get here, all downloads failed
-    raise RuntimeError(f"Failed to download {dataset_info.name} from all mirrors. "
+    raise RuntimeError(f"Failed to download {info.name} from all mirrors. "
                       f"Last error: {last_error}")
