@@ -37,17 +37,18 @@ class ManagedDataset(Dataset, ABC):
                  train: bool = True,
                  transform: Optional[Callable] = None,
                  target_transform: Optional[Callable] = None,
-                 download: bool = True,
                  force_download: bool = False):
         """
         Initialize managed dataset.
+        
+        Datasets now download by default when instantiated. Use force_download=True
+        to re-download even if files already exist.
         
         Args:
             root: Root directory for data (defaults to project_root/data)
             train: Whether to use training or test set
             transform: Transform to apply to samples
             target_transform: Transform to apply to targets
-            download: Whether to download if not present
             force_download: Whether to force re-download
         """
         if root is None:
@@ -70,8 +71,8 @@ class ManagedDataset(Dataset, ABC):
         # Create dataset directory
         self.dataset_root.mkdir(parents=True, exist_ok=True)
         
-        if download:
-            self._download(force_download)
+        # Always download (but won't re-download if files exist unless force_download=True)
+        self._download(force_download)
         
         # Load data after download
         self._load_data()
@@ -98,7 +99,7 @@ class ManagedDataset(Dataset, ABC):
         pass
     
     @abstractmethod
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         """Get a sample from the dataset."""
         pass
     
@@ -107,8 +108,13 @@ class ManagedDataset(Dataset, ABC):
         """Visualize samples from the dataset."""
         pass
     
-    def _apply_transforms(self, sample: Any, target: Any) -> Tuple[Any, Any]:
-        """Apply transforms to sample and target."""
+    def _apply_transforms(self, sample: torch.Tensor, target: int) -> Tuple[torch.Tensor, int]:
+        """
+        Apply transforms to sample and target.
+        
+        Note: Since datasets now return tensors by default, transforms should expect
+        tensor inputs rather than PIL Images.
+        """
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
@@ -120,8 +126,10 @@ class MnistDataset(ManagedDataset):
     """
     MNIST dataset with automatic download and management.
     
+    Returns PyTorch tensors for images and integers for labels.
+    
     Returns:
-        sample: PIL Image of shape (28, 28)
+        sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
         target: int class label (0-9)
     """
     
@@ -182,23 +190,23 @@ class MnistDataset(ManagedDataset):
     def __len__(self) -> int:
         return len(self.data)
     
-    def __getitem__(self, index: int) -> Tuple[Image.Image, int]:
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         """
         Get a sample from MNIST dataset.
         
         Returns:
-            sample: PIL Image of the digit
+            sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
             target: int class label (0-9)
         """
         img, target = self.data[index], int(self.targets[index])
         
-        # Convert to PIL Image (L mode auto-detected for uint8 grayscale)
-        img = Image.fromarray(img)
+        # Convert to tensor directly (values 0-255 -> 0-1)
+        img_tensor = torch.from_numpy(img.astype(np.float32) / 255.0).unsqueeze(0)  # Add channel dimension
         
-        # Apply transforms
-        img, target = self._apply_transforms(img, target)
+        # Apply transforms if provided
+        img_tensor, target = self._apply_transforms(img_tensor, target)
         
-        return img, target
+        return img_tensor, target
     
     def visualize(self, num_samples: int = 8, figsize: Tuple[int, int] = (10, 8)) -> None:
         """Visualize MNIST samples."""
@@ -229,9 +237,11 @@ class FashionMnistDataset(ManagedDataset):
     """
     Fashion-MNIST dataset with automatic download and management.
     
+    Returns PyTorch tensors directly without requiring ToTensor() transform.
+    
     Returns:
-        sample: PIL Image of shape (28, 28)
-        target: int class label (0-9)
+        sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
+        target: torch.Tensor with int class label (0-9)
     """
     
     # Fashion-MNIST class names
@@ -291,23 +301,23 @@ class FashionMnistDataset(ManagedDataset):
     def __len__(self) -> int:
         return len(self.data)
     
-    def __getitem__(self, index: int) -> Tuple[Image.Image, int]:
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         """
         Get a sample from Fashion-MNIST dataset.
         
         Returns:
-            sample: PIL Image of the fashion item
+            sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
             target: int class label (0-9)
         """
         img, target = self.data[index], int(self.targets[index])
         
-        # Convert to PIL Image (L mode auto-detected for uint8 grayscale)
-        img = Image.fromarray(img)
+        # Convert to tensor directly (values 0-255 -> 0-1)
+        img_tensor = torch.from_numpy(img.astype(np.float32) / 255.0).unsqueeze(0)  # Add channel dimension
         
-        # Apply transforms
-        img, target = self._apply_transforms(img, target)
+        # Apply transforms if provided
+        img_tensor, target = self._apply_transforms(img_tensor, target)
         
-        return img, target
+        return img_tensor, target
     
     def visualize(self, num_samples: int = 8, figsize: Tuple[int, int] = (10, 8)) -> None:
         """Visualize Fashion-MNIST samples."""
@@ -337,9 +347,11 @@ class Cifar10Dataset(ManagedDataset):
     """
     CIFAR-10 dataset with automatic download and management.
     
+    Returns PyTorch tensors directly without requiring ToTensor() transform.
+    
     Returns:
-        sample: PIL Image of shape (32, 32, 3)
-        target: int class label (0-9)
+        sample: torch.Tensor of shape (3, 32, 32) with values in [0, 1]
+        target: torch.Tensor with int class label (0-9)
     """
     
     class_names = [
@@ -397,23 +409,24 @@ class Cifar10Dataset(ManagedDataset):
     def __len__(self) -> int:
         return len(self.data)
     
-    def __getitem__(self, index: int) -> Tuple[Image.Image, int]:
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         """
         Get a sample from CIFAR-10 dataset.
         
         Returns:
-            sample: PIL Image of the object
+            sample: torch.Tensor of shape (3, 32, 32) with values in [0, 1]
             target: int class label (0-9)
         """
         img, target = self.data[index], int(self.targets[index])
         
-        # Convert to PIL Image
-        img = Image.fromarray(img)
+        # Convert to tensor directly (values 0-255 -> 0-1)
+        # CIFAR-10 images are (32, 32, 3), we need (3, 32, 32)
+        img_tensor = torch.from_numpy(img.astype(np.float32) / 255.0).permute(2, 0, 1)  # HWC -> CHW
         
-        # Apply transforms
-        img, target = self._apply_transforms(img, target)
+        # Apply transforms if provided
+        img_tensor, target = self._apply_transforms(img_tensor, target)
         
-        return img, target
+        return img_tensor, target
     
     def visualize(self, num_samples: int = 8, figsize: Tuple[int, int] = (10, 8)) -> None:
         """Visualize CIFAR-10 samples."""

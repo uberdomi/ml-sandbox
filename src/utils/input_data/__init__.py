@@ -88,22 +88,23 @@ def get_dataset_info(dataset_name: str) -> DatasetInfo:
         raise ValueError(f"Dataset '{dataset_name}' not found. Available: {available}")
 
 # Quick dataset factory function
-def create_dataset(dataset_name: str, train: bool = True, download: bool = True, **kwargs):
+def create_dataset(dataset_name: str, train: bool = True, **kwargs):
     """
     Factory function to create dataset instances by name.
+    
+    Datasets now download by default. Use force_download=True to re-download.
     
     Args:
         dataset_name: Name of the dataset (case-insensitive)
         train: Whether to load training set (default: True)
-        download: Whether to download if not present (default: True)
-        **kwargs: Additional arguments passed to dataset constructor
+        **kwargs: Additional arguments passed to dataset constructor (e.g., force_download=True)
         
     Returns:
         Dataset instance
         
     Example:
         train_set = create_dataset("mnist", train=True)
-        test_set = create_dataset("fashion-mnist", train=False)
+        test_set = create_dataset("fashion-mnist", train=False, force_download=True)
     """
     dataset_name = dataset_name.lower().replace("-", "_")
     
@@ -119,4 +120,4 @@ def create_dataset(dataset_name: str, train: bool = True, download: bool = True,
         raise ValueError(f"Dataset '{dataset_name}' not supported. Available: {available}")
     
     dataset_class = dataset_map[dataset_name]
-    return dataset_class(train=train, download=download, **kwargs)
+    return dataset_class(train=train, **kwargs)

@@ -66,16 +66,16 @@ def device():
 def sample_transforms():
     """Provide common transforms for grayscale datasets (MNIST, Fashion-MNIST)."""
     return transforms.Compose([
-        transforms.ToTensor(),
+        # Note: No ToTensor() needed - datasets return tensors by default
         transforms.Normalize((0.5,), (0.5,))
     ])
 
 @pytest.fixture
 def cifar_transforms():
-    """Provide CIFAR-specific transforms for RGB datasets."""
+    """Provide common transforms for CIFAR-10 dataset."""
     return transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        # Note: No ToTensor() needed - datasets return tensors by default
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def augmentation_transforms():
     return transforms.Compose([
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomRotation(10),
-        transforms.ToTensor(),
+        # Note: No ToTensor() needed - datasets return tensors by default
         transforms.Normalize((0.5,), (0.5,))
     ])
 
@@ -103,7 +103,7 @@ def dataset_config():
     """Provide common dataset configuration for tests."""
     return {
         'train': True,
-        'download': False,  # Default to False to avoid unnecessary downloads
+        'force_download': False,  # Default to False to avoid unnecessary re-downloads
         'transform': None,
         'target_transform': None,
     }
