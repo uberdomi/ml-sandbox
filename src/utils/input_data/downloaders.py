@@ -14,11 +14,13 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Tuple, Any
 from tqdm import tqdm
 
+from src.utils.input_data.enums import DatasetInfo
+
 USER_AGENT = "ml-sandbox/1.0"
 
 def gen_bar_updater():
     """Create a tqdm progress bar updater for urllib.request.urlretrieve."""
-    pbar = tqdm(total=None, unit='B', unit_scale=True, desc="Downloading")
+    pbar = tqdm(total=None, unit='B', unit_scale=True, unit_divisor=1024, desc="Downloading")
 
     def bar_update(count, block_size, total_size):
         if pbar.total is None and total_size:
@@ -92,32 +94,38 @@ def download_url(url: str, root: Union[str, Path], filename: Optional[str] = Non
         print(f"File {filename} already exists and is valid.")
         return file_path
     
-    print(f"Downloading {url} to {file_path}")
+    print(f"Downloading {filename} from {url}")
     
     try:
-        # Add User-Agent header to avoid blocking
-        request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+        # Create progress bar updater
+        progress_updater = gen_bar_updater()
         
-        with urllib.request.urlopen(request) as response:
-            total_size = int(response.headers.get('Content-Length', 0))
-            with open(file_path, 'wb') as f, tqdm(
-                total=total_size, unit='B', unit_scale=True, desc=f"Downloading {filename}"
-            ) as pbar:
-                while True:
-                    chunk = response.read(8192)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    pbar.update(len(chunk))
+        # Add User-Agent header to avoid blocking by creating an opener
+        opener = urllib.request.build_opener()
+        opener.addheaders = [('User-Agent', USER_AGENT)]
+        urllib.request.install_opener(opener)
+        
+        # Download with progress bar
+        urllib.request.urlretrieve(url, str(file_path), reporthook=progress_updater)
+        
+        # Close the progress bar
+        progress_updater.__self__.close()
                     
     except urllib.error.URLError as e:
+        if file_path.exists():
+            file_path.unlink()  # Remove partial download
         raise RuntimeError(f"Failed to download {url}: {e}")
+    except Exception as e:
+        if file_path.exists():
+            file_path.unlink()  # Remove partial download
+        raise RuntimeError(f"Unexpected error downloading {url}: {e}")
     
     # Verify integrity
     if not check_integrity(file_path, md5, sha256):
-        os.remove(file_path)
+        file_path.unlink()  # Remove corrupted file
         raise RuntimeError(f"Downloaded file {filename} is corrupted or incomplete.")
     
+    print(f"✅ Successfully downloaded and verified {filename}")
     return file_path
 
 
@@ -238,3 +246,72 @@ def download_and_extract_archive(url: str, download_root: Union[str, Path],
     
     # Extract the archive
     extract_archive(archive_path, extract_root, remove_finished)
+
+
+def dataset_exists(dataset_info: DatasetInfo, root: Union[str, Path]) -> bool:
+    """
+    Check if a dataset file already exists and is valid.
+    
+    Args:
+        dataset_info: DatasetInfo enum value containing file information
+        root: Directory where the dataset should be located
+        
+    Returns:
+        True if dataset exists and passes integrity check
+    """
+    root = Path(root)
+    file_path = root / dataset_info.filename
+    
+    return check_integrity(file_path, dataset_info.md5, dataset_info.sha256)
+
+
+def download_dataset(dataset_info: DatasetInfo, root: Union[str, Path],
+                    force_download: bool = False, verbose: bool = True) -> Path:
+    """
+    Download a dataset using the information from DatasetInfo enum.
+    
+    Args:
+        dataset_info: DatasetInfo enum value
+        root: Directory to download to
+        force_download: Whether to re-download even if file exists
+        verbose: Whether to print progress information
+        
+    Returns:
+        Path to the downloaded file
+        
+    Raises:
+        RuntimeError: If all download attempts fail
+    """
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    
+    file_path = root / dataset_info.filename
+    
+    # Check if already exists and valid
+    if not force_download and dataset_exists(dataset_info, root):
+        if verbose:
+            print(f"Dataset {dataset_info.name} already exists and is valid: {file_path}")
+        return file_path
+    
+    if verbose:
+        print(f"Downloading {dataset_info.name}...")
+        if dataset_info.description:
+            print(f"Description: {dataset_info.description}")
+    
+    # Try each mirror URL until one succeeds
+    last_error = None
+    for url in dataset_info.urls:
+        try:
+            return download_url(
+                url, root, dataset_info.filename,
+                dataset_info.md5, dataset_info.sha256
+            )
+        except Exception as e:
+            last_error = e
+            if verbose:
+                print(f"Failed to download from {url}: {e}")
+            continue
+    
+    # If we get here, all downloads failed
+    raise RuntimeError(f"Failed to download {dataset_info.name} from all mirrors. "
+                      f"Last error: {last_error}")
