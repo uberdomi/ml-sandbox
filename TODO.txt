@@ -3,3 +3,16 @@
 - Write a sample autoencoder
 - Add some tests?
 - Adjust readme
+
+1) Dataloaders
+- implement Dataset classes deriving from the pytorch base class to manage the datasets from predefined links, to be used as model inputs
+- add file extracting utilities
+- add plotting utilities
+^ everything can be packed into one wrapper class
+- allow for custom transformations of the input data
+- allow to load into memory, if it suffices
+
+2) Trainers
+- add a trainer class that implements the training loop on pytorch objects: datasets, models and optimizers
+^ take in the objects at inti and manage them
+^ in the end can store the model and load it again
