@@ -14,8 +14,17 @@ from unittest.mock import patch
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from utils.input_data.datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset
-from utils.input_data.enums import CommonDatasets
+# Import from our clean package API
+from utils.input_data import (
+    MnistDataset, 
+    FashionMnistDataset, 
+    Cifar10Dataset,
+    CommonDatasets,
+    create_dataset,
+    get_dataset_info,
+)
+
+# Import functions that aren't in __all__ but needed for testing
 from utils.input_data.downloaders import download_dataset, dataset_exists
 
 # Configure logging
@@ -396,6 +405,72 @@ class TestErrorHandling:
         except Exception as e:
             logger.error(f"Invalid path test failed: {e}")
             # Don't raise here as this is testing error handling
+
+
+class TestPackageAPI:
+    """Test suite for the package API functions."""
+    
+    def test_get_dataset_info(self):
+        """Test the get_dataset_info factory function."""
+        try:
+            # Test various name formats
+            mnist_info = get_dataset_info("mnist")
+            assert mnist_info.name == "MNIST"
+            assert len(mnist_info.classes) == 10
+            
+            fashion_info = get_dataset_info("fashion-mnist")
+            assert fashion_info.name == "Fashion-MNIST"
+            assert len(fashion_info.classes) == 10
+            
+            # Test case insensitive
+            cifar_info = get_dataset_info("CIFAR10")
+            assert cifar_info.name == "CIFAR-10"
+            
+            logger.info("Dataset info retrieval verified")
+        except Exception as e:
+            logger.error(f"Dataset info test failed: {e}")
+            raise
+    
+    def test_get_dataset_info_invalid(self):
+        """Test get_dataset_info with invalid dataset name."""
+        try:
+            with pytest.raises(ValueError):
+                get_dataset_info("nonexistent")
+            logger.info("Invalid dataset name handling verified")
+        except Exception as e:
+            logger.error(f"Invalid dataset info test failed: {e}")
+            raise
+    
+    def test_create_dataset_factory(self):
+        """Test the create_dataset factory function."""
+        try:
+            # Test creating different datasets
+            mnist = create_dataset("mnist", train=True, download=False)
+            assert isinstance(mnist, MnistDataset)
+            assert mnist.train == True
+            
+            fashion = create_dataset("fashion-mnist", train=False, download=False)
+            assert isinstance(fashion, FashionMnistDataset)
+            assert fashion.train == False
+            
+            # Test alternative naming
+            cifar = create_dataset("cifar-10", train=True, download=False)
+            assert isinstance(cifar, Cifar10Dataset)
+            
+            logger.info("Dataset factory function verified")
+        except Exception as e:
+            logger.error(f"Dataset factory test failed: {e}")
+            raise
+    
+    def test_create_dataset_invalid(self):
+        """Test create_dataset with invalid dataset name."""
+        try:
+            with pytest.raises(ValueError):
+                create_dataset("nonexistent")
+            logger.info("Invalid dataset creation handling verified")
+        except Exception as e:
+            logger.error(f"Invalid dataset creation test failed: {e}")
+            raise
 
 
 # Pytest fixtures and utilities
