@@ -1,5 +1,5 @@
 """
-Base classes and shared functionality for dataset management.
+Base classes, information and shared functionality for dataset management.
 
 This module contains the abstract base class ManagedDataset and common
 utilities used by all dataset implementations.
@@ -11,13 +11,67 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Optional, Union, Tuple, Callable, List, Dict
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
-from .enums import DatasetInfo
+@dataclass
+class DatasetDownloads:
+    """Information for downloading dataset files - URLs, checksums, and metadata."""
+    name: str
+    urls: list[str]  # Mirror URLs
+    filename: str
+    md5: Optional[str] = None
+    sha256: Optional[str] = None
+    file_size: Optional[int] = None  # Size in bytes
+    description: str = ""
 
+    def print(self) -> str:
+        """Return a string summary of the download information."""
+        lines = [
+            f"Dataset Download: {self.name}",
+            f"  Filename: {self.filename}",
+            f"  URLs: {len(self.urls)} mirror(s)",
+        ]
+        for i, url in enumerate(self.urls, 1):
+            lines.append(f"    {i}. {url}")
+        if self.md5:
+            lines.append(f"  MD5: {self.md5}")
+        if self.sha256:
+            lines.append(f"  SHA256: {self.sha256}")
+        if self.file_size:
+            lines.append(f"  File Size: {self.file_size:,} bytes")
+        if self.description:
+            lines.append(f"  Description: {self.description}")
+        return "\n".join(lines)
+
+@dataclass  
+class DatasetInfo:
+    """High-level information about a complete dataset including structure and metadata."""
+    name: str
+    description: str
+    classes: list[str]
+    num_classes: int
+    input_shape: Tuple[int, ...]  # Shape of input data (e.g., (3, 32, 32) for CIFAR-10)
+    license: str = ""
+    citation: str = ""
+
+    def print(self) -> str:
+        """Return a string summary of the dataset information."""
+        lines = [
+            f"Dataset: {self.name}",
+            f"  Description: {self.description}",
+            f"  Number of Classes: {self.num_classes}",
+            f"  Input Shape: {self.input_shape}",
+            f"  Classes: {', '.join(self.classes)}",
+        ]
+        if self.license:
+            lines.append(f"  License: {self.license}")
+        if self.citation:
+            lines.append(f"  Citation: {self.citation}")
+        return "\n".join(lines)
 
 class ManagedDataset(Dataset, ABC):
     """

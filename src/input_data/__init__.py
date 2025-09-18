@@ -21,22 +21,11 @@ Example usage:
 from typing import Union, List
 
 # Import dataset classes from modular structure
-from .base import ManagedDataset
+from .base import ManagedDataset, DatasetDownloads, DatasetInfo
 from .mnist import MnistDataset
 from .fashion_mnist import FashionMnistDataset
 from .cifar10 import Cifar10Dataset
 
-# Import enums and configuration
-from .enums import (
-    DatasetDownloads,
-    DatasetInfo,
-    DatasetMetadata,  # Backward compatibility alias
-    DatasetDownloadsEnum,
-    DatasetInfoEnum,
-    CommonDatasets,  # Backward compatibility alias
-    Datasets,        # Backward compatibility alias
-    SupportedDatasets,
-)
 
 # Import download utilities
 from .downloaders import (
@@ -83,57 +72,13 @@ __all__ = [
     "list_supported_datasets",
 ]
 
-# Convenience functions and shortcuts
-def get_dataset_info(dataset: Union[str, SupportedDatasets]) -> DatasetInfo:
-    """
-    Get dataset information by name or enum.
-    
-    Args:
-        dataset: Dataset identifier - SupportedDatasets enum or string name
-        
-    Returns:
-        DatasetInfo object with high-level dataset information
-        
-    Example:
-        # Using enum (recommended)
-        info = get_dataset_info(SupportedDatasets.MNIST)
-        
-        # Using string
-        info = get_dataset_info("mnist")
-        print(info.print())
-    """
-    # Handle both enum and string inputs
-    if isinstance(dataset, SupportedDatasets):
-        dataset_enum = dataset
-    elif isinstance(dataset, str):
-        # Normalize string input
-        dataset_name_normalized = dataset.lower().replace("-", "_")
-        
-        # Handle alternative names
-        name_mapping = {
-            "fashion-mnist": "fashion_mnist",
-            "cifar-10": "cifar10",
-            "cifar_10": "cifar10",
-        }
-        dataset_name = name_mapping.get(dataset_name_normalized, dataset_name_normalized)
-        
-        # Convert to enum
-        try:
-            dataset_enum = SupportedDatasets[dataset_name.upper()]
-        except KeyError:
-            available = [d.name.lower() for d in SupportedDatasets]
-            raise ValueError(f"Dataset '{dataset}' not found. Available: {available}")
-    else:
-        raise TypeError(f"dataset must be SupportedDatasets enum or string, got {type(dataset)}")
-    
-    # Map to DatasetInfo
-    info_map = {
-        SupportedDatasets.MNIST: DatasetInfoEnum.MNIST.value,
-        SupportedDatasets.FASHION_MNIST: DatasetInfoEnum.FASHION_MNIST.value,
-        SupportedDatasets.CIFAR10: DatasetInfoEnum.CIFAR10.value,
-    }
-    
-    return info_map[dataset_enum]
+from enum import Enum, auto
+
+class SupportedDatasets(Enum):
+    """Enum of supported datasets."""
+    MNIST = auto()
+    FASHION_MNIST = auto()
+    CIFAR10 = auto()
 
 
 def list_supported_datasets() -> List[str]:
@@ -150,8 +95,6 @@ def list_supported_datasets() -> List[str]:
     return [d.name.lower() for d in SupportedDatasets]
 
 
-# Backward compatibility
-DATASETS = CommonDatasets  # Legacy alias
 
 # Main API function for creating datasets
 def create_dataset(dataset: Union[str, SupportedDatasets], **kwargs) -> ManagedDataset:

@@ -14,8 +14,7 @@ from enum import Enum
 
 import torch
 
-from .base import ManagedDataset
-from .enums import DatasetDownloads, DatasetInfo
+from .base import ManagedDataset, DatasetDownloads, DatasetInfo
 from .downloaders import download_dataset
 
 

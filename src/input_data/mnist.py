@@ -13,8 +13,7 @@ from enum import Enum
 
 import torch
 
-from .base import ManagedDataset
-from .enums import DatasetDownloads, DatasetInfo, DatasetDownloadsEnum, DatasetInfoEnum
+from .base import ManagedDataset, DatasetDownloads, DatasetInfo
 from .downloaders import download_dataset
 
 
