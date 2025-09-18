@@ -12,7 +12,7 @@ import logging
 import tempfile
 import shutil
 from pathlib import Path
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Generator, Iterator, List
 
 # Third-party imports
 import torch
@@ -33,17 +33,17 @@ logging.basicConfig(
 # ============================================================================
 
 @pytest.fixture(scope="session")
-def project_root():
+def project_root() -> Path:
     """Get the project root directory."""
     return Path(__file__).parent.parent
 
 @pytest.fixture(scope="session") 
-def data_root(project_root):
+def data_root(project_root: Path) -> Path:
     """Get the data directory for datasets."""
     return project_root / "data"
 
 @pytest.fixture(scope="session")
-def temp_data_dir():
+def temp_data_dir() -> Generator[Path, None, None]:
     """Create a temporary directory for test data that persists for the entire test session."""
     temp_dir = Path(tempfile.mkdtemp(prefix="test_datasets_"))
     yield temp_dir
@@ -51,7 +51,7 @@ def temp_data_dir():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 @pytest.fixture(scope="session")
-def device():
+def device() -> torch.device:
     """Provide the best available device for testing."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ def device():
 # ============================================================================
 
 @pytest.fixture
-def sample_transforms():
+def sample_transforms() -> transforms.Compose:
     """Provide common transforms for grayscale datasets (MNIST, Fashion-MNIST)."""
     return transforms.Compose([
         # Note: No ToTensor() needed - datasets return tensors by default
@@ -71,7 +71,7 @@ def sample_transforms():
     ])
 
 @pytest.fixture
-def cifar_transforms():
+def cifar_transforms() -> transforms.Compose:
     """Provide common transforms for CIFAR-10 dataset."""
     return transforms.Compose([
         # Note: No ToTensor() needed - datasets return tensors by default
@@ -79,7 +79,7 @@ def cifar_transforms():
     ])
 
 @pytest.fixture
-def augmentation_transforms():
+def augmentation_transforms() -> transforms.Compose:
     """Provide data augmentation transforms for testing."""
     return transforms.Compose([
         transforms.RandomHorizontalFlip(p=0.5),
@@ -89,17 +89,17 @@ def augmentation_transforms():
     ])
 
 @pytest.fixture
-def test_batch_sizes():
+def test_batch_sizes() -> List[int]:
     """Provide common batch sizes for testing."""
     return [1, 4, 16, 32]
 
 @pytest.fixture
-def small_sample_size():
+def small_sample_size() -> int:
     """Provide a small sample size for quick testing."""
     return 100
 
 @pytest.fixture
-def dataset_config():
+def dataset_config() -> Dict[str, Any]:
     """Provide common dataset configuration for tests."""
     return {
         'train': True,
@@ -109,7 +109,7 @@ def dataset_config():
     }
 
 @pytest.fixture
-def tensor_shapes():
+def tensor_shapes() -> Dict[str, Tuple[int, int, int]]:
     """Provide expected tensor shapes for different datasets."""
     return {
         'mnist': (1, 28, 28),
@@ -122,7 +122,7 @@ def tensor_shapes():
 # ============================================================================
 
 @pytest.fixture
-def mock_download_config():
+def mock_download_config() -> Dict[str, int]:
     """Provide configuration for mocking downloads during testing."""
     return {
         'chunk_size': 1024,
@@ -131,7 +131,7 @@ def mock_download_config():
     }
 
 @pytest.fixture
-def temp_file():
+def temp_file() -> Generator[Path, None, None]:
     """Create a temporary file for testing."""
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         tmp_path = Path(tmp.name)
@@ -145,7 +145,7 @@ def temp_file():
 # ============================================================================
 
 @pytest.fixture(autouse=True)
-def setup_logging():
+def setup_logging() -> Generator[None, None, None]:
     """Setup logging for each test with consistent format."""
     logger = logging.getLogger(__name__)
     logger.info("Starting test")
@@ -153,7 +153,7 @@ def setup_logging():
     logger.info("Test completed")
 
 @pytest.fixture(autouse=True)
-def set_random_seed():
+def set_random_seed() -> None:
     """Set random seeds for reproducible tests."""
     torch.manual_seed(42)
     if torch.cuda.is_available():
@@ -168,7 +168,7 @@ def set_random_seed():
 # ============================================================================
 # Note: Markers are defined in pyproject.toml to avoid duplication
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: pytest.Config, items: List[pytest.Item]) -> None:
     """Modify test collection to add markers automatically based on test names."""
     for item in items:
         # Auto-mark tests based on naming patterns
@@ -188,14 +188,14 @@ def pytest_collection_modifyitems(config, items):
         if "api" in item.name.lower() or "factory" in item.name.lower():
             item.add_marker(pytest.mark.dataset_api)
 
-def pytest_runtest_setup(item):
+def pytest_runtest_setup(item: pytest.Item) -> None:
     """Setup run before each test item."""
     # Skip download tests if --no-download option is used
     if "download" in [mark.name for mark in item.iter_markers()]:
         if item.config.getoption("--no-download", default=False):
             pytest.skip("Skipping download test due to --no-download option")
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
     """Add custom command line options."""
     parser.addoption(
         "--no-download",
