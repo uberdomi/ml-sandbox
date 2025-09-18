@@ -5,7 +5,7 @@ This package provides a clean API for managing and loading common ML datasets
 with automatic downloading, integrity checking, and PyTorch integration.
 
 Example usage:
-    from src.utils.input_data import MnistDataset, CommonDatasets
+    from src.input_data import MnistDataset, CommonDatasets
     
     # Create a dataset instance
     mnist = MnistDataset(train=True, download=True)

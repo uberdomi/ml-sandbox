@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Tuple, Any
 from tqdm import tqdm
 
-from src.utils.input_data.enums import DatasetInfo
+from src.input_data.enums import DatasetInfo
 
 USER_AGENT = "ml-sandbox/1.0"
 
