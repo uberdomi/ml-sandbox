@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Tuple, Any
 from tqdm import tqdm
 
-from .enums import DatasetInfo
+from .enums import DatasetDownloads
 
 USER_AGENT = "ml-sandbox/1.0"
 
@@ -260,12 +260,12 @@ def download_and_extract_archive(
     extract_archive(archive_path, extract_root, remove_finished)
 
 
-def dataset_exists(dataset_info: DatasetInfo, root: Union[str, Path]) -> bool:
+def dataset_exists(dataset_info: DatasetDownloads, root: Union[str, Path]) -> bool:
     """
     Check if a dataset file already exists and is valid.
     
     Args:
-        dataset_info: DatasetInfo object or CommonDatasets enum value
+        dataset_info: DatasetDownloads object or DatasetDownloadsEnum enum value
         root: Directory where the dataset should be located
         
     Returns:
@@ -273,12 +273,12 @@ def dataset_exists(dataset_info: DatasetInfo, root: Union[str, Path]) -> bool:
     """
     root = Path(root)
     
-    # Handle both DatasetInfo objects and CommonDatasets enum values
+    # Handle both DatasetDownloads objects and DatasetDownloadsEnum enum values
     if hasattr(dataset_info, 'value'):
-        # It's a CommonDatasets enum, get the DatasetInfo
+        # It's a DatasetDownloadsEnum enum, get the DatasetDownloads
         info = dataset_info.value
     else:
-        # It's already a DatasetInfo object
+        # It's already a DatasetDownloads object
         info = dataset_info
     
     file_path = root / info.filename
@@ -287,16 +287,16 @@ def dataset_exists(dataset_info: DatasetInfo, root: Union[str, Path]) -> bool:
 
 
 def download_dataset(
-    dataset_info: DatasetInfo,
+    dataset_info: DatasetDownloads,
     root: Union[str, Path],
     force_download: bool = False,
     verbose: bool = True
 ) -> Path:
     """
-    Download a dataset using the information from DatasetInfo or CommonDatasets enum.
+    Download a dataset using the information from DatasetDownloads or DatasetDownloadsEnum enum.
     
     Args:
-        dataset_info: DatasetInfo object or CommonDatasets enum value
+        dataset_info: DatasetDownloads object or DatasetDownloadsEnum enum value
         root: Directory to download to
         force_download: Whether to re-download even if file exists
         verbose: Whether to print progress information
@@ -310,12 +310,12 @@ def download_dataset(
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     
-    # Handle both DatasetInfo objects and CommonDatasets enum values
+    # Handle both DatasetDownloads objects and DatasetDownloadsEnum enum values
     if hasattr(dataset_info, 'value'):
-        # It's a CommonDatasets enum, get the DatasetInfo
+        # It's a DatasetDownloadsEnum enum, get the DatasetDownloads
         info = dataset_info.value
     else:
-        # It's already a DatasetInfo object
+        # It's already a DatasetDownloads object
         info = dataset_info
     
     file_path = root / info.filename

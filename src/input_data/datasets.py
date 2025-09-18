@@ -17,7 +17,7 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
-from .enums import CommonDatasets, DatasetInfo
+from .enums import DatasetDownloadsEnum, DatasetInfoEnum, CommonDatasets
 from .downloaders import download_dataset, extract_archive
 
 

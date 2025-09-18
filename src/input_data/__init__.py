@@ -29,10 +29,14 @@ from .datasets import (
 
 # Import enums and configuration
 from .enums import (
+    DatasetDownloads,
     DatasetInfo,
-    DatasetMetadata,
-    CommonDatasets,
-    Datasets,
+    DatasetMetadata,  # Backward compatibility alias
+    DatasetDownloadsEnum,
+    DatasetInfoEnum,
+    CommonDatasets,  # Backward compatibility alias
+    Datasets,        # Backward compatibility alias
+    SupportedDatasets,
 )
 
 # Import download utilities
@@ -54,10 +58,14 @@ __all__ = [
     "Cifar10Dataset",
     
     # Configuration and metadata
+    "DatasetDownloads",
     "DatasetInfo",
-    "DatasetMetadata", 
-    "CommonDatasets",
-    "Datasets",
+    "DatasetMetadata",  # Backward compatibility
+    "DatasetDownloadsEnum",
+    "DatasetInfoEnum", 
+    "CommonDatasets",   # Backward compatibility
+    "Datasets",         # Backward compatibility
+    "SupportedDatasets",
     
     # Utility functions
     "download_url",
