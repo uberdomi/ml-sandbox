@@ -20,13 +20,11 @@ Example usage:
 
 from typing import Union, List
 
-# Import dataset classes
-from .datasets import (
-    ManagedDataset,
-    MnistDataset,
-    FashionMnistDataset, 
-    Cifar10Dataset,
-)
+# Import dataset classes from modular structure
+from .base import ManagedDataset
+from .mnist import MnistDataset
+from .fashion_mnist import FashionMnistDataset
+from .cifar10 import Cifar10Dataset
 
 # Import enums and configuration
 from .enums import (
