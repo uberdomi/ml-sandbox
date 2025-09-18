@@ -10,7 +10,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import Optional, Union, Tuple, Callable, List
+from typing import Optional, Union, Tuple, Callable, List, Dict
 from abc import ABC, abstractmethod
 
 import torch
@@ -117,7 +117,7 @@ class ManagedDataset(Dataset, ABC):
                        test_split: float = 0.2,
                        batch_size: int = 32,
                        shuffle: bool = True,
-                       num_workers: int = 0) -> Tuple[Optional[DataLoader], Optional[DataLoader], Optional[DataLoader]]:
+                       num_workers: int = 0) -> Dict[str, DataLoader]:
         """
         Create train/validation/test dataloaders from the unified dataset.
         
@@ -130,7 +130,7 @@ class ManagedDataset(Dataset, ABC):
             num_workers: Number of worker processes for data loading
             
         Returns:
-            Tuple of (train_loader, val_loader, test_loader). Any can be None if split is 0.0.
+            Dictionary with 'train', 'val', 'test' DataLoader objects (only for splits > 0.0).
         """
         # Validate splits
         total_split = train_split + val_split + test_split
@@ -156,13 +156,13 @@ class ManagedDataset(Dataset, ABC):
             split_sizes.append(test_size)
         
         if not splits:
-            return None, None, None
+            return {}
             
         # Perform the split
         split_datasets = random_split(self, split_sizes)
         
-        # Create dataloaders
-        loaders = []
+        # Create dataloaders and return as dictionary
+        dataloaders = {}
         for i, split_name in enumerate(splits):
             dataset = split_datasets[i]
             shuffle_this = shuffle if split_name == 'train' else False
@@ -172,14 +172,9 @@ class ManagedDataset(Dataset, ABC):
                 shuffle=shuffle_this,
                 num_workers=num_workers
             )
-            loaders.append(loader)
+            dataloaders[split_name] = loader
         
-        # Return in standard order: train, val, test
-        train_loader = loaders[splits.index('train')] if 'train' in splits else None
-        val_loader = loaders[splits.index('val')] if 'val' in splits else None  
-        test_loader = loaders[splits.index('test')] if 'test' in splits else None
-        
-        return train_loader, val_loader, test_loader
+        return dataloaders
     
     def show_random_samples(self, num_samples: int = 8, figsize: Tuple[int, int] = (12, 8)) -> None:
         """Display random samples from the dataset."""
