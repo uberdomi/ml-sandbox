@@ -114,20 +114,24 @@ def create_dataset(dataset_name: str, train: bool = True, **kwargs):
     """
     Factory function to create dataset instances by name.
     
-    Uses the new Datasets enum for consistent naming conventions.
-    Datasets download by default. Use force_download=True to re-download.
+    NOTE: The 'train' parameter is now DEPRECATED. All datasets load complete data
+    and use get_dataloaders() for train/val/test splits. Kept for backward compatibility.
     
     Args:
         dataset_name: Name of the dataset (case-insensitive)
-        train: Whether to load training set (default: True)
-        **kwargs: Additional arguments passed to dataset constructor (e.g., force_download=True)
+        train: DEPRECATED - kept for backward compatibility, ignored
+        **kwargs: Additional arguments passed to dataset constructor
         
     Returns:
-        Dataset instance
+        Complete dataset instance (loads all data - train + test)
         
     Example:
-        train_set = create_dataset("mnist", train=True)
-        test_set = create_dataset("fashion-mnist", train=False, force_download=True)
+        # New recommended usage
+        dataset = create_dataset("mnist")
+        train_loader, val_loader, test_loader = dataset.get_dataloaders()
+        
+        # Old usage still works but loads complete dataset
+        dataset = create_dataset("mnist", train=True)  # train parameter ignored
     """
     # Normalize dataset name and create mapping from enum names to classes
     dataset_name_normalized = dataset_name.lower().replace("-", "_")
@@ -155,4 +159,8 @@ def create_dataset(dataset_name: str, train: bool = True, **kwargs):
         raise ValueError(f"Dataset '{dataset_name}' not supported. Available: {available}")
     
     dataset_class = dataset_map[lookup_name]
-    return dataset_class(train=train, **kwargs)
+    
+    # Remove 'train' parameter if present (no longer used)
+    kwargs.pop('train', None)
+    
+    return dataset_class(**kwargs)
