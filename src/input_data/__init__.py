@@ -5,19 +5,20 @@ This package provides a clean API for managing and loading common ML datasets
 with automatic downloading, integrity checking, and PyTorch integration.
 
 Example usage:
-    from src.input_data import MnistDataset, CommonDatasets
+    from input_data import create_dataset, SupportedDatasets
     
-    # Create a dataset instance
-    mnist = MnistDataset(train=True, download=True)
+    # Create a complete dataset instance (new recommended approach)
+    dataset = create_dataset(SupportedDatasets.MNIST)
     
-    # Access dataset metadata
-    info = CommonDatasets.MNIST.value
-    print(f"Dataset: {info.name}, Classes: {info.classes}")
+    # Get dataloaders with custom splits
+    train_loader, val_loader, test_loader = dataset.get_dataloaders()
     
-    # Use with PyTorch DataLoader
-    from torch.utils.data import DataLoader
-    loader = DataLoader(mnist, batch_size=32, shuffle=True)
+    # Print dataset information and visualize
+    dataset.print_info()
+    dataset.show_random_samples()
 """
+
+from typing import Union, List
 
 # Import dataset classes
 from .datasets import (
@@ -51,116 +52,212 @@ __version__ = "0.1.0"
 
 # Define the public API
 __all__ = [
-    # Dataset classes - main API
+    # Main API function
+    "create_dataset",
+    
+    # Dataset classes
     "ManagedDataset",
     "MnistDataset",
     "FashionMnistDataset", 
     "Cifar10Dataset",
     
     # Configuration and metadata
+    "SupportedDatasets",
     "DatasetDownloads",
     "DatasetInfo",
-    "DatasetMetadata",  # Backward compatibility
     "DatasetDownloadsEnum",
     "DatasetInfoEnum", 
-    "CommonDatasets",   # Backward compatibility
-    "Datasets",         # Backward compatibility
-    "SupportedDatasets",
+    
+    # Backward compatibility
+    "DatasetMetadata",  # Alias for DatasetInfo
+    "CommonDatasets",   # Alias for DatasetDownloadsEnum
+    "Datasets",         # Alias for DatasetInfoEnum
+    "create_dataset_legacy",
     
     # Utility functions
     "download_url",
     "extract_archive",
     "check_integrity",
     "gen_bar_updater",
+    
+    # Convenience functions
+    "get_dataset_info",
+    "list_supported_datasets",
 ]
 
-# Convenience shortcuts for common datasets
-DATASETS = CommonDatasets
-
-# Quick access to dataset info
-def get_dataset_info(dataset_name: str) -> DatasetMetadata:
+# Convenience functions and shortcuts
+def get_dataset_info(dataset: Union[str, SupportedDatasets]) -> DatasetInfo:
     """
-    Get dataset information by name.
+    Get dataset information by name or enum.
     
     Args:
-        dataset_name: Name of the dataset (case-insensitive)
+        dataset: Dataset identifier - SupportedDatasets enum or string name
         
     Returns:
-        DatasetMetadata object with high-level dataset information
+        DatasetInfo object with high-level dataset information
         
     Example:
+        # Using enum (recommended)
+        info = get_dataset_info(SupportedDatasets.MNIST)
+        
+        # Using string
         info = get_dataset_info("mnist")
-        print(f"Classes: {info.classes}")
+        print(info.print())
     """
-    # Normalize dataset name for lookup
-    dataset_name = dataset_name.upper().replace("-", "_")
+    # Handle both enum and string inputs
+    if isinstance(dataset, SupportedDatasets):
+        dataset_enum = dataset
+    elif isinstance(dataset, str):
+        # Normalize string input
+        dataset_name_normalized = dataset.lower().replace("-", "_")
+        
+        # Handle alternative names
+        name_mapping = {
+            "fashion-mnist": "fashion_mnist",
+            "cifar-10": "cifar10",
+            "cifar_10": "cifar10",
+        }
+        dataset_name = name_mapping.get(dataset_name_normalized, dataset_name_normalized)
+        
+        # Convert to enum
+        try:
+            dataset_enum = SupportedDatasets[dataset_name.upper()]
+        except KeyError:
+            available = [d.name.lower() for d in SupportedDatasets]
+            raise ValueError(f"Dataset '{dataset}' not found. Available: {available}")
+    else:
+        raise TypeError(f"dataset must be SupportedDatasets enum or string, got {type(dataset)}")
     
-    # Handle alternative names
-    name_mapping = {
-        "FASHION_MNIST": "FASHION_MNIST",
-        "CIFAR_10": "CIFAR10",
-        "CIFAR10": "CIFAR10"
+    # Map to DatasetInfo
+    info_map = {
+        SupportedDatasets.MNIST: DatasetInfoEnum.MNIST.value,
+        SupportedDatasets.FASHION_MNIST: DatasetInfoEnum.FASHION_MNIST.value,
+        SupportedDatasets.CIFAR10: DatasetInfoEnum.CIFAR10.value,
     }
-    dataset_name = name_mapping.get(dataset_name, dataset_name)
     
-    try:
-        return getattr(Datasets, dataset_name).value
-    except AttributeError:
-        available = [d.name for d in Datasets]
-        raise ValueError(f"Dataset '{dataset_name}' not found. Available: {available}")
+    return info_map[dataset_enum]
 
-# Quick dataset factory function
-def create_dataset(dataset_name: str, train: bool = True, **kwargs):
+
+def list_supported_datasets() -> List[str]:
     """
-    Factory function to create dataset instances by name.
+    Get a list of all supported dataset names.
     
-    NOTE: The 'train' parameter is now DEPRECATED. All datasets load complete data
-    and use get_dataloaders() for train/val/test splits. Kept for backward compatibility.
+    Returns:
+        List of supported dataset names
+        
+    Example:
+        datasets = list_supported_datasets()
+        print(f"Supported datasets: {', '.join(datasets)}")
+    """
+    return [d.name.lower() for d in SupportedDatasets]
+
+
+# Backward compatibility
+DATASETS = CommonDatasets  # Legacy alias
+
+# Main API function for creating datasets
+def create_dataset(dataset: Union[str, SupportedDatasets], **kwargs) -> ManagedDataset:
+    """
+    Main API function to create dataset instances.
+    
+    This is the primary function for creating datasets in the input_data package.
+    All datasets load complete data (train + test) and use get_dataloaders() for splits.
+    
+    Args:
+        dataset: Dataset to create. Can be:
+                - SupportedDatasets enum value (recommended)
+                - String name (case-insensitive, supports aliases)
+        **kwargs: Additional arguments passed to dataset constructor
+                 (root, transform, target_transform, force_download)
+        
+    Returns:
+        Complete dataset instance (loads all available data)
+        
+    Example:
+        # Using enum (recommended)
+        from input_data import create_dataset, SupportedDatasets
+        dataset = create_dataset(SupportedDatasets.MNIST)
+        
+        # Using string name
+        dataset = create_dataset("mnist")
+        dataset = create_dataset("fashion-mnist")  # Alternative names supported
+        
+        # Get dataloaders with custom splits
+        train_loader, val_loader, test_loader = dataset.get_dataloaders(
+            train_split=0.7, val_split=0.15, test_split=0.15
+        )
+        
+        # Print dataset information
+        dataset.print_info()
+        
+        # Visualize samples
+        dataset.show_random_samples()
+        dataset.show_illustrative_samples()
+    """
+    # Handle both enum and string inputs
+    if isinstance(dataset, SupportedDatasets):
+        dataset_enum = dataset
+        dataset_name = dataset.name.lower()
+    elif isinstance(dataset, str):
+        # Normalize string input
+        dataset_name_normalized = dataset.lower().replace("-", "_")
+        
+        # Handle alternative names
+        name_mapping = {
+            "fashion-mnist": "fashion_mnist",
+            "cifar-10": "cifar10",
+            "cifar_10": "cifar10",
+        }
+        dataset_name = name_mapping.get(dataset_name_normalized, dataset_name_normalized)
+        
+        # Convert to enum
+        try:
+            dataset_enum = SupportedDatasets[dataset_name.upper()]
+        except KeyError:
+            available = [d.name.lower() for d in SupportedDatasets]
+            raise ValueError(f"Dataset '{dataset}' not supported. Available: {available}")
+    else:
+        raise TypeError(f"dataset must be SupportedDatasets enum or string, got {type(dataset)}")
+    
+    # Map enum to dataset classes
+    dataset_class_map = {
+        SupportedDatasets.MNIST: MnistDataset,
+        SupportedDatasets.FASHION_MNIST: FashionMnistDataset,
+        SupportedDatasets.CIFAR10: Cifar10Dataset,
+    }
+    
+    if dataset_enum not in dataset_class_map:
+        raise NotImplementedError(f"Dataset {dataset_enum.name} is supported but not yet implemented")
+    
+    dataset_class = dataset_class_map[dataset_enum]
+    return dataset_class(**kwargs)
+
+
+# Backward compatibility function
+def create_dataset_legacy(dataset_name: str, train: bool = True, **kwargs):
+    """
+    Legacy function for backward compatibility.
+    
+    NOTE: The 'train' parameter is DEPRECATED. Use create_dataset() instead.
     
     Args:
         dataset_name: Name of the dataset (case-insensitive)
-        train: DEPRECATED - kept for backward compatibility, ignored
+        train: DEPRECATED - ignored, kept for backward compatibility
         **kwargs: Additional arguments passed to dataset constructor
         
     Returns:
         Complete dataset instance (loads all data - train + test)
-        
-    Example:
-        # New recommended usage
-        dataset = create_dataset("mnist")
-        train_loader, val_loader, test_loader = dataset.get_dataloaders()
-        
-        # Old usage still works but loads complete dataset
-        dataset = create_dataset("mnist", train=True)  # train parameter ignored
     """
-    # Normalize dataset name and create mapping from enum names to classes
-    dataset_name_normalized = dataset_name.lower().replace("-", "_")
-    
-    # Create mapping based on our Datasets enum
-    dataset_map = {
-        "mnist": MnistDataset,
-        "fashion_mnist": FashionMnistDataset,
-        "cifar10": Cifar10Dataset,
-    }
-    
-    # Handle alternative names
-    alternative_names = {
-        "cifar_10": "cifar10",
-        "fashion-mnist": "fashion_mnist",
-        "cifar-10": "cifar10",
-    }
-    
-    # Use alternative name if it exists
-    lookup_name = alternative_names.get(dataset_name_normalized, dataset_name_normalized)
-    
-    if lookup_name not in dataset_map:
-        # Show available names from our Datasets enum
-        available = [d.value.name for d in Datasets]
-        raise ValueError(f"Dataset '{dataset_name}' not supported. Available: {available}")
-    
-    dataset_class = dataset_map[lookup_name]
+    import warnings
+    warnings.warn(
+        "The 'train' parameter is deprecated. All datasets now load complete data. "
+        "Use get_dataloaders() to split into train/val/test sets. "
+        "Consider using create_dataset() with SupportedDatasets enum instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     
     # Remove 'train' parameter if present (no longer used)
     kwargs.pop('train', None)
     
-    return dataset_class(**kwargs)
+    return create_dataset(dataset_name, **kwargs)
