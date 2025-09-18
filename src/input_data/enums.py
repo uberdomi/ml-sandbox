@@ -3,9 +3,16 @@ Static information about common datasets.
 Used by the dataset downloading utilities.
 """
 
-from enum import Enum
+from enum import Enum, auto
 from typing import Optional
 from dataclasses import dataclass
+
+class SupportedDatasets(Enum):
+    """Enum of supported datasets."""
+    MNIST = auto()
+    FASHION_MNIST = auto()
+    CIFAR10 = auto()
+
 
 @dataclass
 class DatasetInfo:
@@ -19,18 +26,6 @@ class DatasetInfo:
     description: str = ""
     license: str = ""
     citation: str = ""
-
-@dataclass
-class DatasetMetadata:
-    """High-level metadata about a complete dataset."""
-    name: str
-    description: str
-    classes: list[str]
-    num_classes: int
-    image_shape: tuple[int, ...]
-    license: str = ""
-    citation: str = ""
-
 
 class CommonDatasets(Enum):
     """Enum containing common ML datasets with their download information."""
@@ -201,6 +196,16 @@ class CommonDatasets(Enum):
     )
 
 
+@dataclass
+class DatasetMetadata:
+    """High-level metadata about a complete dataset."""
+    name: str
+    description: str
+    classes: list[str]
+    num_classes: int
+    image_shape: tuple[int, ...]
+    license: str = ""
+    citation: str = ""
 class Datasets(Enum):
     """Enum containing dataset-level metadata for the supported datasets."""
     

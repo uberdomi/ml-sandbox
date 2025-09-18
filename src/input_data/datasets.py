@@ -40,8 +40,8 @@ class ManagedDataset(Dataset, ABC):
                  force_download: bool = False):
         """
         Initialize managed dataset.
-        
-        Datasets now download by default when instantiated. Use force_download=True
+
+        Datasets are downloaded by default when instantiated. Use force_download=True
         to re-download even if files already exist.
         
         Args:
@@ -99,7 +99,7 @@ class ManagedDataset(Dataset, ABC):
         pass
     
     @abstractmethod
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, index: int) -> Any:
         """Get a sample from the dataset."""
         pass
     
@@ -108,7 +108,7 @@ class ManagedDataset(Dataset, ABC):
         """Visualize samples from the dataset."""
         pass
     
-    def _apply_transforms(self, sample: torch.Tensor, target: int) -> Tuple[torch.Tensor, int]:
+    def _apply_transforms(self, sample: torch.Tensor, target: int) -> Any:
         """
         Apply transforms to sample and target.
         

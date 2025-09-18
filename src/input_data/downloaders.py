@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Tuple, Any
 from tqdm import tqdm
 
-from src.input_data.enums import DatasetInfo
+from .enums import DatasetInfo
 
 USER_AGENT = "ml-sandbox/1.0"
 
@@ -65,8 +65,13 @@ def check_integrity(file_path: Union[str, Path], md5: Optional[str] = None,
         return os.path.getsize(file_path) > 0
 
 
-def download_url(url: str, root: Union[str, Path], filename: Optional[str] = None,
-                md5: Optional[str] = None, sha256: Optional[str] = None) -> Path:
+def download_url(
+    url: str,
+    root: Union[str, Path],
+    filename: Optional[str] = None,
+    md5: Optional[str] = None,
+    sha256: Optional[str] = None
+) -> Path:
     """
     Download a file from a URL with progress bar and integrity checking.
     
@@ -161,9 +166,11 @@ def _is_zip(filename: str) -> bool:
     return filename.endswith(".zip")
 
 
-def extract_archive(from_path: Union[str, Path], 
-                   to_path: Optional[Union[str, Path]] = None,
-                   remove_finished: bool = False) -> None:
+def extract_archive(
+    from_path: Union[str, Path], 
+    to_path: Optional[Union[str, Path]] = None,
+    remove_finished: bool = False
+) -> None:
     """
     Extract an archive file.
     
@@ -221,12 +228,15 @@ def extract_archive(from_path: Union[str, Path],
         print(f"Removed archive: {filename}")
 
 
-def download_and_extract_archive(url: str, download_root: Union[str, Path],
-                                extract_root: Optional[Union[str, Path]] = None,
-                                filename: Optional[str] = None, 
-                                md5: Optional[str] = None,
-                                sha256: Optional[str] = None,
-                                remove_finished: bool = False) -> None:
+def download_and_extract_archive(
+    url: str,
+    download_root: Union[str, Path],
+    extract_root: Optional[Union[str, Path]] = None,
+    filename: Optional[str] = None, 
+    md5: Optional[str] = None,
+    sha256: Optional[str] = None,
+    remove_finished: bool = False
+) -> None:
     """
     Download and extract an archive in one step.
     
@@ -250,7 +260,7 @@ def download_and_extract_archive(url: str, download_root: Union[str, Path],
     extract_archive(archive_path, extract_root, remove_finished)
 
 
-def dataset_exists(dataset_info, root: Union[str, Path]) -> bool:
+def dataset_exists(dataset_info: DatasetInfo, root: Union[str, Path]) -> bool:
     """
     Check if a dataset file already exists and is valid.
     
@@ -276,8 +286,12 @@ def dataset_exists(dataset_info, root: Union[str, Path]) -> bool:
     return check_integrity(file_path, info.md5, info.sha256)
 
 
-def download_dataset(dataset_info, root: Union[str, Path],
-                    force_download: bool = False, verbose: bool = True) -> Path:
+def download_dataset(
+    dataset_info: DatasetInfo,
+    root: Union[str, Path],
+    force_download: bool = False,
+    verbose: bool = True
+) -> Path:
     """
     Download a dataset using the information from DatasetInfo or CommonDatasets enum.
     

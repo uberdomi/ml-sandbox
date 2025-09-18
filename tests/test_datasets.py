@@ -16,7 +16,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # Classes and functions to test
-from utils.input_data import (
+from input_data import (
     MnistDataset, 
     FashionMnistDataset, 
     Cifar10Dataset,
@@ -26,7 +26,7 @@ from utils.input_data import (
 )
 
 # Import functions that aren't in __all__ but needed for testing
-from utils.input_data.downloaders import download_dataset, dataset_exists
+from input_data.downloaders import download_dataset, dataset_exists
 
 # Configure logging  
 logger = logging.getLogger(__name__)
