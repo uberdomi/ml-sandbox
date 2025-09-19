@@ -17,35 +17,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
-@dataclass
-class DatasetDownloads:
-    """Information for downloading dataset files - URLs, checksums, and metadata."""
-    name: str
-    urls: list[str]  # Mirror URLs
-    filename: str
-    md5: Optional[str] = None
-    sha256: Optional[str] = None
-    file_size: Optional[int] = None  # Size in bytes
-    description: str = ""
-
-    def print(self) -> str:
-        """Return a string summary of the download information."""
-        lines = [
-            f"Dataset Download: {self.name}",
-            f"  Filename: {self.filename}",
-            f"  URLs: {len(self.urls)} mirror(s)",
-        ]
-        for i, url in enumerate(self.urls, 1):
-            lines.append(f"    {i}. {url}")
-        if self.md5:
-            lines.append(f"  MD5: {self.md5}")
-        if self.sha256:
-            lines.append(f"  SHA256: {self.sha256}")
-        if self.file_size:
-            lines.append(f"  File Size: {self.file_size:,} bytes")
-        if self.description:
-            lines.append(f"  Description: {self.description}")
-        return "\n".join(lines)
+from .downloaders import DownloadInfo, download_and_extract_dataset
 
 @dataclass  
 class DatasetInfo:
@@ -129,6 +101,12 @@ class ManagedDataset(Dataset, ABC):
     
     @property
     @abstractmethod
+    def download_infos(self) -> List[DownloadInfo]:
+        """List of download links for the dataset."""
+        pass
+    
+    @property
+    @abstractmethod
     def dataset_name(self) -> str:
         """Name of the dataset (used for folder name)."""
         pass
@@ -139,10 +117,12 @@ class ManagedDataset(Dataset, ABC):
         """Get the DatasetInfo for this dataset."""
         pass
     
-    @abstractmethod
     def _download(self, force_download: bool = False) -> None:
-        """Download all dataset files (both train and test).""" 
-        pass
+        """Download all dataset files (both train and test)."""
+        # TODO add check if archive already extracted
+        
+        for info in self.download_infos:
+            download_and_extract_dataset(info, self.dataset_root)
     
     @abstractmethod
     def _load_data(self) -> None:
