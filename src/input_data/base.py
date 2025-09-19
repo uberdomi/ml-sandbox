@@ -117,10 +117,18 @@ class ManagedDataset(Dataset, ABC):
         """Get the DatasetInfo for this dataset."""
         pass
     
+    @abstractmethod
+    def _extraction_valid(self) -> bool:
+        """Check if the extracted dataset is valid."""
+        pass
+    
     def _download(self, force_download: bool = False) -> None:
         """Download all dataset files (both train and test)."""
-        # TODO add check if archive already extracted
-        
+        if self._extraction_valid() and not force_download:
+            print(f"Dataset {self.dataset_name} already exists and is valid.")
+            return
+
+        print(f"Downloading dataset {self.dataset_name} to {self.dataset_root}...")
         for info in self.download_infos:
             download_and_extract_dataset(info, self.dataset_root)
     

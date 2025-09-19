@@ -78,27 +78,9 @@ def download_and_extract_archive(
     extract_archive(archive_path, extract_root, remove_finished)
 
 
-def dataset_exists(download_info: DownloadInfo, root: Union[str, Path]) -> bool:
-    """
-    Check if a dataset file already exists and is valid.
-    
-    Args:
-        download_info: DownloadInfo object containing necessary information
-        root: Directory where the dataset should be located
-        
-    Returns:
-        True if dataset exists and passes integrity check
-    """
-    root = Path(root)
-    
-    file_path = root / download_info.filename
-    
-    return check_integrity(file_path, download_info.md5, download_info.sha256)
-
 def download_and_extract_dataset(
     download_info: DownloadInfo,
     root: Union[str, Path],
-    force_download: bool = False,
     remove_finished: bool = False,
     verbose: bool = True
 ) -> None:
@@ -108,17 +90,10 @@ def download_and_extract_dataset(
     Args:
         download_info: DownloadInfo object containing necessary information
         root: Root directory to download and extract the dataset
-        force_download: Whether to re-download even if file exists
         remove_finished: Whether to delete the archive after extraction
         verbose: Whether to print progress information
     """
     root = Path(root)
-
-    # TODO check the extracted data too
-    if not force_download and dataset_exists(download_info, root):
-        if verbose:
-            print(f"Dataset {download_info.name} already exists and is valid.")
-        return
     
     if verbose:
         print(f"Downloading and extracting {download_info.name}...")
