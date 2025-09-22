@@ -8,63 +8,61 @@ download information and metadata definitions.
 import struct
 import gzip
 import numpy as np
-from typing import Tuple
-from enum import Enum
+from typing import List, Tuple
 
 import torch
 
-from .base import ManagedDataset, DatasetDownloads, DatasetInfo
-from .downloaders import download_dataset
+from .base import ManagedDataset, DatasetInfo
+from .downloaders import DownloadInfo
 
 
 # MNIST-specific download information
-class MnistDownloads(Enum):
-    """Download information for MNIST dataset files."""
-    
-    TRAIN_IMAGES = DatasetDownloads(
+MNIST_DOWNLOADS = [
+    DownloadInfo(
         name="MNIST Training Images",
+        filename="train-images-idx3-ubyte.gz",
+        extract_folder="images",
         urls=[
             "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz"
         ],
-        filename="train-images-idx3-ubyte.gz",
         md5="f68b3c2dcbeaaa9fbdd348bbdeb94873",
         description="MNIST training set images (60,000 examples)"
-    )
-    
-    TRAIN_LABELS = DatasetDownloads(
+    ),
+    DownloadInfo(
         name="MNIST Training Labels",
+        filename="train-labels-idx1-ubyte.gz",
+        extract_folder="labels",
         urls=[
             "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz"
         ],
-        filename="train-labels-idx1-ubyte.gz",
         md5="d53e105ee54ea40749a09fcbcd1e9432",
         description="MNIST training set labels (60,000 examples)"
-    )
-    
-    TEST_IMAGES = DatasetDownloads(
-        name="MNIST Test Images", 
+    ),
+    DownloadInfo(
+        name="MNIST Test Images",
+        filename="t10k-images-idx3-ubyte.gz",
+        extract_folder="images",
         urls=[
             "http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz"
         ],
-        filename="t10k-images-idx3-ubyte.gz",
         md5="9fb629c4189551a2d022fa330f9573f3",
         description="MNIST test set images (10,000 examples)"
-    )
-    
-    TEST_LABELS = DatasetDownloads(
+    ),
+    DownloadInfo(
         name="MNIST Test Labels",
+        filename="t10k-labels-idx1-ubyte.gz",
+        extract_folder="labels",
         urls=[
-            "http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz", 
+            "http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz"
         ],
-        filename="t10k-labels-idx1-ubyte.gz",
         md5="ec29112dd5afa0611ce80d1b7f02629c",
         description="MNIST test set labels (10,000 examples)"
-    )
-
+    ),
+]
 
 # MNIST dataset information
 MNIST_INFO = DatasetInfo(
@@ -91,6 +89,10 @@ class MnistDataset(ManagedDataset):
     """
     
     @property
+    def download_infos(self) -> List[DownloadInfo]:
+        return MNIST_DOWNLOADS
+
+    @property
     def dataset_name(self) -> str:
         return "mnist"
     
@@ -98,18 +100,9 @@ class MnistDataset(ManagedDataset):
     def dataset_info(self) -> DatasetInfo:
         return MNIST_INFO
     
-    def _download(self, force_download: bool = False) -> None:
-        """Download ALL MNIST dataset files (both train and test)."""
-        files_to_download = [
-            MnistDownloads.TRAIN_IMAGES,
-            MnistDownloads.TRAIN_LABELS,
-            MnistDownloads.TEST_IMAGES,
-            MnistDownloads.TEST_LABELS
-        ]
-        
-        # Download each file
-        for dataset_info in files_to_download:
-            download_dataset(dataset_info.value, self.dataset_root, force_download)
+    def _extraction_valid(self):
+        # TODO add a correct check
+        return True
     
     def _load_data(self) -> None:
         """Load ALL MNIST data (train + test) into unified dataset."""

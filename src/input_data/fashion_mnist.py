@@ -13,71 +13,68 @@ from enum import Enum
 
 import torch
 
-from .base import ManagedDataset, DatasetDownloads, DatasetInfo
-from .downloaders import download_dataset
+from .base import ManagedDataset, DatasetInfo
+from .downloaders import DownloadInfo
 
 
 # Fashion-MNIST-specific download information
-class FashionMnistDownloads(Enum):
-    """Download information for Fashion-MNIST dataset files."""
-    
-    TRAIN_IMAGES = DatasetDownloads(
+FASHION_MNIST_DOWNLOADS = [
+    DownloadInfo(
         name="Fashion-MNIST Training Images",
+        filename="train-images-idx3-ubyte.gz",
+        extract_folder="images",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-images-idx3-ubyte.gz",
-            "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/train-images-idx3-ubyte.gz"
-        ],
-        filename="train-images-idx3-ubyte.gz",
+            "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/train-images-idx3-ubyte.gz"],
         md5="8d4fb7e6c68d591d4c3dfef9ec88bf0d",
         description="Fashion-MNIST training images (60,000 examples)"
-    )
-    
-    TRAIN_LABELS = DatasetDownloads(
+    ),
+    DownloadInfo(
         name="Fashion-MNIST Training Labels",
+        filename="train-labels-idx1-ubyte.gz",
+        extract_folder="labels",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-labels-idx1-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/train-labels-idx1-ubyte.gz"
         ],
-        filename="train-labels-idx1-ubyte.gz", 
         md5="25c81989df183df01b3e8a0aad5dffbe",
         description="Fashion-MNIST training labels (60,000 examples)"
-    )
-    
-    TEST_IMAGES = DatasetDownloads(
+    ),
+    DownloadInfo(
         name="Fashion-MNIST Test Images",
+        filename="t10k-images-idx3-ubyte.gz",
+        extract_folder="images",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-images-idx3-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/t10k-images-idx3-ubyte.gz"
         ],
-        filename="t10k-images-idx3-ubyte.gz",
         md5="bef4ecab320f06d8554ea6380940ec79",
         description="Fashion-MNIST test images (10,000 examples)"
-    )
-    
-    TEST_LABELS = DatasetDownloads(
+    ),
+    DownloadInfo(
         name="Fashion-MNIST Test Labels",
+        filename="t10k-labels-idx1-ubyte.gz",
+        extract_folder="labels",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-labels-idx1-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/t10k-labels-idx1-ubyte.gz"
         ],
-        filename="t10k-labels-idx1-ubyte.gz",
         md5="bb300cfdad3c16e7a12a480ee83cd310",
         description="Fashion-MNIST test labels (10,000 examples)"
     )
-
+]
 
 # Fashion-MNIST dataset information
 FASHION_MNIST_INFO = DatasetInfo(
     name="Fashion-MNIST",
     description="Fashion-MNIST dataset of clothing images (28x28 grayscale images)",
     classes=["T-shirt/top", "Trouser", "Pullover", "Dress", "Coat", 
-             "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"],
+            "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"],
     num_classes=10,
     input_shape=(1, 28, 28),
     license="MIT License",
     citation="Xiao, H., Rasul, K., & Vollgraf, R. (2017). Fashion-MNIST: a Novel Image Dataset for Benchmarking Machine Learning Algorithms."
 )
-
 
 class FashionMnistDataset(ManagedDataset):
     """
@@ -92,6 +89,10 @@ class FashionMnistDataset(ManagedDataset):
     """
     
     @property
+    def download_infos(self) -> list[DownloadInfo]:
+        return FASHION_MNIST_DOWNLOADS
+    
+    @property
     def dataset_name(self) -> str:
         return "fashion-mnist"
     
@@ -99,17 +100,9 @@ class FashionMnistDataset(ManagedDataset):
     def dataset_info(self) -> DatasetInfo:
         return FASHION_MNIST_INFO
     
-    def _download(self, force_download: bool = False) -> None:
-        """Download ALL Fashion-MNIST dataset files (both train and test)."""
-        files_to_download = [
-            FashionMnistDownloads.TRAIN_IMAGES,
-            FashionMnistDownloads.TRAIN_LABELS,
-            FashionMnistDownloads.TEST_IMAGES,
-            FashionMnistDownloads.TEST_LABELS
-        ]
-        
-        for dataset_info in files_to_download:
-            download_dataset(dataset_info.value, self.dataset_root, force_download)
+    def _extraction_valid(self):
+        # TODO add a correct check
+        return True
     
     def _load_data(self) -> None:
         """Load ALL Fashion-MNIST data (train + test) into unified dataset."""

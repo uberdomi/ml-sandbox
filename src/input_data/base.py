@@ -5,7 +5,6 @@ This module contains the abstract base class ManagedDataset and common
 utilities used by all dataset implementations.
 """
 
-import os
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,7 +20,16 @@ from .downloaders import DownloadInfo, download_and_extract_dataset
 
 @dataclass  
 class DatasetInfo:
-    """High-level information about a complete dataset including structure and metadata."""
+    """High-level information about a complete dataset including structure and metadata.
+    
+    Args:
+        name: Name of the dataset
+        description: Short description of the dataset
+        classes: List of class names/labels
+        num_classes: Number of classes
+        input_shape: Shape of input data (e.g., (3, 32, 32) for CIFAR-10)
+        license: License information (optional)
+        citation: Citation information (optional)"""
     name: str
     description: str
     classes: list[str]

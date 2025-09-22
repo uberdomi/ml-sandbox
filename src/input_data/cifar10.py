@@ -14,25 +14,24 @@ from enum import Enum
 
 import torch
 
-from .base import ManagedDataset, DatasetDownloads, DatasetInfo
-from .downloaders import download_dataset
+from .base import ManagedDataset, DatasetInfo
+from .downloaders import DownloadInfo
 
 
 # CIFAR-10-specific download information
-class Cifar10Downloads(Enum):
-    """Download information for CIFAR-10 dataset."""
-    
-    CIFAR10 = DatasetDownloads(
+CIFAR10_DOWNLOADS = [
+    DownloadInfo(
         name="CIFAR-10 Dataset",
+        filename="cifar-10-python.tar.gz",
+        extract_folder="images",
         urls=[
             "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
             "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
         ],
-        filename="cifar-10-python.tar.gz",
         md5="c58f30108f718f92721af3b95e74349a",
         description="CIFAR-10 dataset archive (60,000 32x32 color images)"
     )
-
+]
 
 # CIFAR-10 dataset information
 CIFAR10_INFO = DatasetInfo(
@@ -60,6 +59,10 @@ class Cifar10Dataset(ManagedDataset):
     """
     
     @property
+    def download_infos(self) -> list[DownloadInfo]:
+        return CIFAR10_DOWNLOADS
+    
+    @property
     def dataset_name(self) -> str:
         return "cifar-10"
     
@@ -67,18 +70,9 @@ class Cifar10Dataset(ManagedDataset):
     def dataset_info(self) -> DatasetInfo:
         return CIFAR10_INFO
     
-    def _download(self, force_download: bool = False) -> None:
-        """Download and extract CIFAR-10 dataset."""
-        download_dataset(Cifar10Downloads.CIFAR10.value, self.dataset_root, force_download)
-        
-        # Extract if needed
-        extracted_dir = self.dataset_root / "cifar-10-batches-py"
-        tar_path = self.dataset_root / "cifar-10-python.tar.gz"
-        
-        if not extracted_dir.exists() and tar_path.exists():
-            print("Extracting CIFAR-10 archive...")
-            with tarfile.open(tar_path, 'r:gz') as tar:
-                tar.extractall(self.dataset_root)
+    def _extraction_valid(self):
+        # TODO add a correct check
+        return True
     
     def _load_data(self) -> None:
         """Load ALL CIFAR-10 data (train + test) into unified dataset."""
