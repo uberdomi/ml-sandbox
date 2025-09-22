@@ -6,38 +6,23 @@ dataset management, data loaders, and other common ML utilities.
 """
 
 from .input_data import (
-    # Dataset classes
+    # Main API function
+    create_dataset,
+
+    # Base dataset class
     ManagedDataset,
-    MnistDataset, 
-    FashionMnistDataset,
+    # Dataset classes
+    MnistDataset,
+    FashionMnistDataset, 
     Cifar10Dataset,
     
-    # Enums and configuration
-    CommonDatasets,
-    DatasetInfo,
-    
-    # Download utilities
-    download_url,
-    extract_archive,
-    check_integrity,
+    # Supported datasets enum
+    SupportedDatasets,
+    list_supported_datasets,
+
 )
 
 __version__ = "0.1.0"
 __author__ = "ML Sandbox"
 
-__all__ = [
-    # Dataset classes
-    "ManagedDataset",
-    "MnistDataset", 
-    "FashionMnistDataset",
-    "Cifar10Dataset",
-    
-    # Enums and configuration
-    "CommonDatasets",
-    "DatasetInfo",
-    
-    # Download utilities
-    "download_url",
-    "extract_archive", 
-    "check_integrity",
-]
+__all__ = input_data.__all__
