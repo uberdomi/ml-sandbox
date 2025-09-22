@@ -18,7 +18,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from .downloaders import DownloadInfo, download_and_extract_dataset
 
-@dataclass  
+@dataclass
 class DatasetInfo:
     """High-level information about a complete dataset including structure and metadata.
     
@@ -133,10 +133,10 @@ class ManagedDataset(Dataset, ABC):
     def _download(self, force_download: bool = False) -> None:
         """Download all dataset files (both train and test)."""
         if self._extraction_valid() and not force_download:
-            print(f"Dataset {self.dataset_name} already exists and is valid.")
+            print("="*5, f"Dataset '{self.dataset_name}' already exists and is valid.", "="*5)
             return
 
-        print(f"Downloading dataset {self.dataset_name} to {self.dataset_root}...")
+        print("="*5, f"Downloading dataset '{self.dataset_name}' to {self.dataset_root}...", "="*5)
         for info in self.download_infos:
             download_and_extract_dataset(info, self.dataset_root)
     

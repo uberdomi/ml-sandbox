@@ -145,8 +145,8 @@ class MnistDataset(ManagedDataset):
         self.data = np.concatenate(all_images, axis=0)
         self.targets = np.concatenate(all_labels, axis=0)
         
-        print(f"Loaded complete MNIST dataset: {len(self.data):,} samples "
-              f"(train: {len(train_images):,}, test: {len(test_images):,})")
+        print("="*5, f"Loaded complete MNIST dataset: {len(self.data):,} samples "
+              f"(train: {len(train_images):,}, test: {len(test_images):,})", "="*5)
     
     def __len__(self) -> int:
         return len(self.data)

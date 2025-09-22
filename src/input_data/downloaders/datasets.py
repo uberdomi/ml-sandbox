@@ -11,6 +11,7 @@ from .fetch import download_url, check_integrity
 from .extract import extract_archive
 
 @dataclass
+
 class DownloadInfo:
     """Information for downloading dataset files - URLs, checksums, and metadata.
     
@@ -27,7 +28,7 @@ class DownloadInfo:
     # File information
     name: str
     filename: str
-    extract_folder: str = "data"
+    extract_folder: str
     # Mirror URLs
     urls: list[str]
     # Integrity checks
