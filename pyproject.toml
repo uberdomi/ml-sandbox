@@ -82,6 +82,7 @@ markers = [
     "transform: marks tests that test data transformations",
     "dataset_api: marks tests for the dataset API functions",
     "error_handling: marks tests for error conditions",
+    "plots: marks tests for the plotting utilities",
 ]
 # Filter warnings
 filterwarnings = [
