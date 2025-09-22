@@ -12,7 +12,18 @@ from .extract import extract_archive
 
 @dataclass
 class DownloadInfo:
-    """Information for downloading dataset files - URLs, checksums, and metadata."""
+    """Information for downloading dataset files - URLs, checksums, and metadata.
+    
+    Args:
+        name: Descriptive name of the dataset/file
+        filename: Name to save the downloaded file as
+        extract_folder: Subfolder to extract into within root (default: "data")
+        urls: List of mirror URLs to download from
+        md5: Expected MD5 checksum (optional)
+        sha256: Expected SHA256 checksum (optional)
+        file_size: Expected file size in bytes (optional)
+        description: Additional description or notes (optional)
+    """
     # File information
     name: str
     filename: str
