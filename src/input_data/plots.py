@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
+# --- Single Sample Plotting Functions ---
 
 def plot_sample_grayscale(
     tensor: torch.Tensor, 
@@ -27,7 +28,7 @@ def plot_sample_grayscale(
     Plot a single grayscale image tensor.
     
     Args:
-        tensor: Input tensor of shape (H, W) or (1, H, W)
+        tensor: Input tensor of shape (H, W), (H, W, 1) or (1, H, W)
         label: Optional label to display in title
         title: Custom title for the plot
         figsize: Figure size as (width, height)
@@ -176,17 +177,67 @@ def plot_sample_rgb(
     
     return fig, ax
 
+def plot_sample(
+    tensor: torch.Tensor,
+    label: Optional[Union[int, str]] = None,
+    title: Optional[str] = None,
+    **kwargs: Any
+) -> Tuple[Figure, Axes]:
+    """
+    Convenience function to plot a single image tensor.
+    
+    This function automatically determines whether to use grayscale or RGB plotting
+    based on tensor shape or the is_rgb parameter.
+    
+    Args:
+        tensor: Input tensor of shape (H, W), (1, H, W), (H, W, 1) for grayscale
+                or (3, H, W), (H, W, 3) for RGB
+        is_rgb: Whether to treat as RGB image (auto-detected if False)
+        label: Optional label to display in title
+        title: Custom title for the plot
+        **kwargs: Additional keyword arguments passed to specific plotting functions
+    Returns:
+        Tuple of (figure, axes) objects
+    Example:
+        >>> tensor = torch.randn(28, 28)
+        >>> fig, ax = plot_sample(tensor, label="airplane")
+        >>> plt.show()
+    """
+    # Determine if RGB based on shape if not explicitly set
+    is_rgb = False
+    if isinstance(tensor, torch.Tensor):
+        shape = tensor.shape
+    else:
+        shape = np.array(tensor).shape
+    
+    if len(shape) == 3:
+        if shape[0] == 3 or shape[2] == 3:
+            is_rgb = True
+    elif len(shape) != 2:
+        raise ValueError(f"Invalid tensor shape: {shape}. "
+                       "Expected 2D or 3D tensor for grayscale or RGB visualization")
+    
+    if is_rgb:
+        return plot_sample_rgb(
+            tensor, label=label, title=title, **kwargs
+        )
+    else:
+        return plot_sample_grayscale(
+            tensor, label=label, title=title, **kwargs
+        )
+
+# --- Multi-Sample Plotting Functions ---
 
 def plot_samples_grayscale(
     tensors: List[torch.Tensor],
     labels: Optional[List[Union[int, str]]] = None,
+    suptitle: Optional[str] = None,
     titles: Optional[List[str]] = None,
     figsize: Optional[Tuple[int, int]] = None,
     cols: Optional[int] = None,
     cmap: str = 'gray',
     show_axes: bool = False,
     save_path: Optional[str] = None,
-    suptitle: Optional[str] = None
 ) -> Tuple[Figure, List[Axes]]:
     """
     Plot multiple grayscale image tensors in subplots.
@@ -194,13 +245,13 @@ def plot_samples_grayscale(
     Args:
         tensors: List of tensors, each of shape (H, W) or (1, H, W)
         labels: Optional list of labels for each tensor
+        suptitle: Main title for the entire figure
         titles: Optional list of custom titles for each subplot
         figsize: Figure size as (width, height). Auto-calculated if None
         cols: Number of columns in subplot grid. Auto-calculated if None
         cmap: Colormap for grayscale visualization
         show_axes: Whether to show axis ticks and labels
         save_path: Optional path to save the figure
-        suptitle: Main title for the entire figure
         
     Returns:
         Tuple of (figure, list of axes) objects
@@ -300,12 +351,12 @@ def plot_samples_grayscale(
 def plot_samples_rgb(
     tensors: List[torch.Tensor],
     labels: Optional[List[Union[int, str]]] = None,
+    suptitle: Optional[str] = None,
     titles: Optional[List[str]] = None,
     figsize: Optional[Tuple[int, int]] = None,
     cols: Optional[int] = None,
     show_axes: bool = False,
     save_path: Optional[str] = None,
-    suptitle: Optional[str] = None,
     normalize: bool = True
 ) -> Tuple[Figure, List[Axes]]:
     """
@@ -314,12 +365,12 @@ def plot_samples_rgb(
     Args:
         tensors: List of tensors, each of shape (3, H, W) or (H, W, 3)
         labels: Optional list of labels for each tensor
+        suptitle: Main title for the entire figure
         titles: Optional list of custom titles for each subplot
         figsize: Figure size as (width, height). Auto-calculated if None
         cols: Number of columns in subplot grid. Auto-calculated if None
         show_axes: Whether to show axis ticks and labels
         save_path: Optional path to save the figure
-        suptitle: Main title for the entire figure
         normalize: Whether to normalize tensor values to [0, 1] range
         
     Returns:
@@ -424,6 +475,78 @@ def plot_samples_rgb(
         fig.savefig(save_path, bbox_inches='tight', dpi=150)
     
     return fig, axes[:n_samples]
+
+def plot_samples(
+    tensors: List[torch.Tensor],
+    labels: Optional[List[Union[int, str]]] = None,
+    suptitle: Optional[str] = None,
+    titles: Optional[List[str]] = None,
+    **kwargs: Any
+) -> Tuple[Figure, List[Axes]]:
+    """
+    Convenience function to plot multiple image tensors.
+    
+    This function automatically determines whether to use grayscale or RGB plotting
+    based on tensor shape or the is_rgb parameter.
+    
+    Args:
+        tensors: List of tensors, each of shape (H, W), (1, H, W) for grayscale
+                 or (3, H, W), (H, W, 3) for RGB
+        labels: Optional list of labels for each tensor
+        suptitle: Main title for the entire figure
+        titles: Optional list of custom titles for each subplot
+        **kwargs: Additional keyword arguments passed to specific plotting functions
+    Returns:
+        Tuple of (figure, list of axes) objects
+    Example:
+        >>> tensors = [torch.randn(28, 28) for _ in range(4)]
+        >>> labels = [0, 1, 2, 3]
+        >>> fig, axes = plot_samples(tensors, labels=labels, cols=2)
+        >>> plt.show()
+    """
+    if not tensors:
+        raise ValueError("tensors list cannot be empty")
+    
+    # Auto-detect RGB vs grayscale
+    # Check the first tensor's shape for detection
+    first_tensor = tensors[0]
+    if isinstance(first_tensor, torch.Tensor):
+        shape = first_tensor.shape
+    else:
+        shape = np.array(first_tensor).shape
+    
+    is_rgb = False
+    if len(shape) == 3:
+        if shape[0] == 3 or shape[2] == 3:
+            is_rgb = True
+        elif shape[0] == 1 or shape[2] == 1:
+            is_rgb = False
+        else:
+            # Default to grayscale for ambiguous cases
+            is_rgb = False
+    elif len(shape) == 2:
+        is_rgb = False
+    else:
+        raise ValueError(f"Invalid tensor shape: {shape}. "
+                       "Expected 2D or 3D tensor for grayscale or RGB visualization")
+    
+    # Use appropriate plotting function
+    if is_rgb:
+        return plot_samples_rgb(
+            tensors=tensors,
+            labels=labels,
+            suptitle=suptitle,
+            titles=titles,
+            **kwargs
+        )
+    else:
+        return plot_samples_grayscale(
+            tensors=tensors,
+            labels=labels,
+            suptitle=suptitle,
+            titles=titles,
+            **kwargs
+        )
 
 
 def plot_tensor_grid(
@@ -591,125 +714,3 @@ def quick_plot(
     
     else:
         raise ValueError(f"Unsupported data type: {type(data)}")
-
-
-def plot_class_samples(
-    dataset: Any,
-    class_names: List[str],
-    samples_per_class: int = 3,
-    figsize: Optional[Tuple[int, int]] = None,
-    save_path: Optional[str] = None
-) -> Tuple[Figure, List[Axes]]:
-    """
-    Plot representative samples from each class in a dataset.
-    
-    This function is designed to work with dataset objects that have __getitem__ method.
-    
-    Args:
-        dataset: Dataset object with __getitem__ method returning (tensor, label)
-        class_names: List of class names
-        samples_per_class: Number of samples to show per class
-        figsize: Figure size as (width, height)
-        save_path: Optional path to save the figure
-        
-    Returns:
-        Tuple of (figure, list of axes) objects
-        
-    Example:
-        >>> fig, axes = plot_class_samples(
-        ...     dataset=mnist_dataset,
-        ...     class_names=[str(i) for i in range(10)],
-        ...     samples_per_class=3
-        ... )
-    """
-    n_classes = len(class_names)
-    total_samples = n_classes * samples_per_class
-    
-    # Calculate grid dimensions
-    cols = samples_per_class
-    rows = n_classes
-    
-    if figsize is None:
-        figsize = (cols * 3, rows * 2)
-    
-    fig, axes = plt.subplots(rows, cols, figsize=figsize)
-    
-    # Handle single row case
-    if rows == 1:
-        axes = axes.reshape(1, -1)
-    elif cols == 1:
-        axes = axes.reshape(-1, 1)
-    
-    # Collect samples for each class
-    class_samples = {i: [] for i in range(n_classes)}
-    
-    # Sample from dataset
-    for i in range(len(dataset)):
-        tensor, label = dataset[i]
-        if isinstance(label, torch.Tensor):
-            label = label.item()
-        
-        if label < n_classes and len(class_samples[label]) < samples_per_class:
-            class_samples[label].append(tensor)
-        
-        # Check if we have enough samples for all classes
-        if all(len(samples) >= samples_per_class for samples in class_samples.values()):
-            break
-    
-    # Plot samples
-    for class_idx in range(n_classes):
-        for sample_idx in range(samples_per_class):
-            ax = axes[class_idx, sample_idx]
-            
-            if sample_idx < len(class_samples[class_idx]):
-                tensor = class_samples[class_idx][sample_idx]
-                
-                # Convert to numpy
-                if isinstance(tensor, torch.Tensor):
-                    tensor_np = tensor.detach().cpu().numpy()
-                else:
-                    tensor_np = np.array(tensor)
-                
-                # Determine if RGB or grayscale and plot
-                if tensor_np.ndim == 3:
-                    if tensor_np.shape[0] == 3:
-                        # RGB (3, H, W) -> (H, W, 3)
-                        tensor_np = tensor_np.transpose(1, 2, 0)
-                        # Normalize for display
-                        tensor_min, tensor_max = tensor_np.min(), tensor_np.max()
-                        if tensor_max > tensor_min:
-                            tensor_np = (tensor_np - tensor_min) / (tensor_max - tensor_min)
-                        tensor_np = np.clip(tensor_np, 0, 1)
-                        ax.imshow(tensor_np)
-                    elif tensor_np.shape[0] == 1:
-                        # Grayscale (1, H, W) -> (H, W)
-                        tensor_np = tensor_np.squeeze(0)
-                        ax.imshow(tensor_np, cmap='gray')
-                    else:
-                        # Assume (H, W, C) format
-                        if tensor_np.shape[2] == 1:
-                            tensor_np = tensor_np.squeeze(2)
-                            ax.imshow(tensor_np, cmap='gray')
-                        else:
-                            ax.imshow(tensor_np)
-                else:
-                    # 2D grayscale
-                    ax.imshow(tensor_np, cmap='gray')
-            else:
-                # No sample available
-                ax.text(0.5, 0.5, 'No sample', ha='center', va='center', transform=ax.transAxes)
-            
-            # Set title for first column
-            if sample_idx == 0:
-                ax.set_ylabel(f'{class_names[class_idx]}', fontsize=10, fontweight='bold')
-            
-            ax.set_xticks([])
-            ax.set_yticks([])
-    
-    plt.suptitle(f'Representative Samples ({samples_per_class} per class)', fontsize=14, fontweight='bold')
-    plt.tight_layout()
-    
-    if save_path:
-        fig.savefig(save_path, bbox_inches='tight', dpi=150)
-    
-    return fig, axes.flatten().tolist()
