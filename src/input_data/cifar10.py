@@ -15,7 +15,7 @@ from enum import Enum
 import torch
 
 from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo
+from .downloaders import DownloadInfo, check_integrity
 
 
 # CIFAR-10-specific download information
@@ -71,7 +71,21 @@ class Cifar10Dataset(ManagedDataset):
         return CIFAR10_INFO
     
     def _extraction_valid(self):
-        # TODO add a correct check
+        # Check integrity of downloaded data
+        for info in self.download_infos:
+            file_path_gz = self.dataset_root / info.filename
+
+            # Check the validity of the .gz files
+            if not check_integrity(file_path_gz, info.md5, info.sha256):
+                print(f"File {info.filename} failed integrity check.")
+                return False
+
+            # Check the existence of the extracted folder
+            extracted_dir = self.dataset_root / "cifar-10-batches-py"
+            if not extracted_dir.exists():
+                print(f"Extracted directory cifar-10-batches-py does not exist.")
+                return False
+
         return True
     
     def _load_data(self) -> None:

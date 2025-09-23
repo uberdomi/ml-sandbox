@@ -13,7 +13,7 @@ from typing import List, Tuple
 import torch
 
 from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo
+from .downloaders import DownloadInfo, check_integrity
 
 
 # MNIST-specific download information
@@ -101,7 +101,21 @@ class MnistDataset(ManagedDataset):
         return MNIST_INFO
     
     def _extraction_valid(self):
-        # TODO add a correct check
+        # Check integrity of downloaded data
+        for info in self.download_infos:
+            file_path_gz = self.dataset_root / info.filename
+
+            # Check the validity of the .gz files
+            if not check_integrity(file_path_gz, info.md5, info.sha256):
+                print(f"File {info.filename} failed integrity check.")
+                return False
+
+            # Check the existence of the extracted files
+            file_path_bin = self.dataset_root / info.extract_folder / info.filename.replace('.gz', '')
+            if not file_path_bin.exists():
+                print(f"Extracted file {info.filename.replace('.gz', '')} does not exist.")
+                return False
+
         return True
     
     def _load_data(self) -> None:
