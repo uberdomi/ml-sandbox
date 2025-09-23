@@ -17,6 +17,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
 from .downloaders import DownloadInfo, download_and_extract_dataset
+from .plots import plot_samples
 
 @dataclass
 class DatasetInfo:
@@ -235,43 +236,14 @@ class ManagedDataset(Dataset, ABC):
         # Select random indices
         indices = random.sample(range(len(self)), min(num_samples, len(self)))
         
-        # Calculate grid size
-        cols = 4
-        rows = (num_samples + cols - 1) // cols
-        
-        fig, axes = plt.subplots(rows, cols, figsize=figsize)
-        if rows == 1:
-            axes = axes.reshape(1, -1)
-        axes = axes.flatten()
-        
-        for i, idx in enumerate(indices):
+        image_list, label_list = [], []
+        for idx in indices:
             img, target = self[idx]
-            
-            # Convert tensor to numpy for display
-            if isinstance(img, torch.Tensor):
-                # Handle different channel orders and shapes
-                img_np = img.numpy()
-                if len(img_np.shape) == 3:
-                    if img_np.shape[0] in [1, 3]:  # CHW format
-                        img_np = np.transpose(img_np, (1, 2, 0))  # Convert to HWC
-                    if img_np.shape[2] == 1:  # Grayscale
-                        img_np = img_np.squeeze(2)
-                else:
-                    img_np = img_np.squeeze()  # Remove single dimensions
-            else:
-                img_np = img
-            
-            axes[i].imshow(img_np, cmap='gray' if len(img_np.shape) == 2 else None)
-            axes[i].set_title(f'Sample {idx}\nLabel: {target}')
-            axes[i].axis('off')
-        
-        # Hide unused subplots
-        for i in range(len(indices), len(axes)):
-            axes[i].axis('off')
-        
-        plt.suptitle(f'{self.dataset_info.name} - Random Samples')
-        plt.tight_layout()
-        plt.show()
+            image_list.append(img)
+            label_list.append(target)
+
+        plot_samples(image_list, labels=label_list, suptitle=f"Random samples of the {self.dataset_info.name} dataset")
+    
     
     def show_illustrative_samples(self, num_per_class: int = 1, figsize: Tuple[int, int] = (15, 10)) -> None:
         """Display representative samples from each class."""
@@ -294,57 +266,16 @@ class ManagedDataset(Dataset, ABC):
             # Stop if we have enough samples for all classes
             if all(len(samples) >= num_per_class for samples in class_samples.values()):
                 break
-        
-        # Calculate grid size
-        cols = num_classes
-        rows = num_per_class
-        
-        fig, axes = plt.subplots(rows, cols, figsize=figsize)
-        if rows == 1:
-            axes = axes.reshape(1, -1)
-        if cols == 1:
-            axes = axes.reshape(-1, 1)
-        
-        for class_idx in range(num_classes):
-            samples = class_samples[class_idx]
-            class_name = info.classes[class_idx] if class_idx < len(info.classes) else str(class_idx)
-            
-            for sample_idx in range(num_per_class):
-                row, col = sample_idx, class_idx
-                ax = axes[row, col] if rows > 1 else axes[col]
-                
-                if sample_idx < len(samples):
-                    idx, img, target = samples[sample_idx]
-                    
-                    # Convert tensor to numpy for display
-                    if isinstance(img, torch.Tensor):
-                        img_np = img.numpy()
-                        if len(img_np.shape) == 3:
-                            if img_np.shape[0] in [1, 3]:  # CHW format
-                                img_np = np.transpose(img_np, (1, 2, 0))  # Convert to HWC
-                            if img_np.shape[2] == 1:  # Grayscale
-                                img_np = img_np.squeeze(2)
-                        else:
-                            img_np = img_np.squeeze()
-                    else:
-                        img_np = img
-                    
-                    ax.imshow(img_np, cmap='gray' if len(img_np.shape) == 2 else None)
-                    if sample_idx == 0:  # Only show class name on first sample
-                        ax.set_title(f'{class_name}\n({target})')
-                    else:
-                        ax.set_title(f'Sample {idx}')
-                else:
-                    # No sample available for this class
-                    ax.text(0.5, 0.5, 'No sample', ha='center', va='center', transform=ax.transAxes)
-                    if sample_idx == 0:
-                        ax.set_title(f'{class_name}\n(No data)')
-                
-                ax.axis('off')
-        
-        plt.suptitle(f'{info.name} - Representative Samples by Class')
-        plt.tight_layout()
-        plt.show()
+
+        # Prepare for plotting
+        image_list, label_list = [], []
+        for class_idx, samples in class_samples.items():
+            for idx, img, target in samples:
+                image_list.append(img)
+                label_list.append(target)
+
+        plot_samples(image_list, labels=label_list, suptitle=f"Illustrative samples of the {self.dataset_info.name} dataset")
+
     
     def _apply_transforms(self, sample: torch.Tensor, target: int) -> Tuple[torch.Tensor, int]:
         """

@@ -18,7 +18,8 @@ Example usage:
     dataset.show_random_samples()
 """
 
-from typing import List
+from typing import List, Optional, Union, Callable, Type
+from pathlib import Path
 
 # Import dataset classes from modular structure
 from .base import ManagedDataset
@@ -70,7 +71,14 @@ def list_supported_datasets() -> List[str]:
 
 
 # Main API function for creating datasets
-def create_dataset(dataset: SupportedDatasets, **kwargs) -> ManagedDataset:
+def create_dataset(
+    dataset: SupportedDatasets,
+    root: Optional[Union[str, Path]] = None,
+    transform: Optional[Callable] = None,
+    target_transform: Optional[Callable] = None,
+    force_download: bool = False,
+    **kwargs
+) -> ManagedDataset:
     """
     Main API function to create dataset instances.
     
@@ -79,8 +87,11 @@ def create_dataset(dataset: SupportedDatasets, **kwargs) -> ManagedDataset:
     
     Args:
         dataset: Dataset to create out of the SupportedDatasets list.
-        **kwargs: Additional arguments passed to dataset constructor
-                 (root, transform, target_transform, force_download)
+        root: Optional[Union[str, Path]] = None,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        force_download: bool = False,
+        **kwargs: Additional arguments passed to the dataset constructor
         
     Returns:
         Complete dataset instance (loads all available data)
@@ -114,5 +125,11 @@ def create_dataset(dataset: SupportedDatasets, **kwargs) -> ManagedDataset:
     if dataset not in dataset_class_map:
         raise NotImplementedError(f"Dataset {dataset.name} is supported but not yet implemented")
 
-    dataset_class = dataset_class_map[dataset]
-    return dataset_class(**kwargs)
+    dataset_class: Type[ManagedDataset] = dataset_class_map[dataset]
+    return dataset_class(
+        root=root,
+        transform=transform,
+        target_transform=target_transform,
+        force_download=force_download,
+        **kwargs
+    )
