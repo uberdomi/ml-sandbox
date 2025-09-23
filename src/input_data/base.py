@@ -139,7 +139,7 @@ class ManagedDataset(Dataset, ABC):
 
         print("="*5, f"Downloading dataset '{self.dataset_name}' to {self.dataset_root}...", "="*5)
         for info in self.download_infos:
-            download_and_extract_dataset(info, self.dataset_root)
+            download_and_extract_dataset(info, self.dataset_root, force_download=force_download)
     
     @abstractmethod
     def _load_data(self) -> None:

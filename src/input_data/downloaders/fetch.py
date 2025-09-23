@@ -63,6 +63,7 @@ def download_url(
     url: str,
     root: Union[str, Path],
     filename: Optional[str] = None,
+    force_download: bool = False,
     md5: Optional[str] = None,
     sha256: Optional[str] = None
 ) -> Path:
@@ -73,6 +74,7 @@ def download_url(
         url: URL to download from
         root: Directory to save the file
         filename: Name to save the file as (defaults to basename of URL)
+        force_download: Whether to re-download even if file is already present
         md5: Expected MD5 checksum for verification
         sha256: Expected SHA256 checksum for verification
         
@@ -91,7 +93,7 @@ def download_url(
     file_path = root / filename
     
     # Check if file already exists and is valid
-    if check_integrity(file_path, md5, sha256):
+    if not force_download and check_integrity(file_path, md5, sha256):
         print(f"File {filename} already exists and is valid.")
         return file_path
     
