@@ -9,7 +9,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import Optional, Union, Tuple, Callable, List, Dict
+from typing import Literal, Optional, Union, Tuple, Callable, List, Dict
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
@@ -18,6 +18,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from .downloaders import DownloadInfo, download_and_extract_dataset
 from .plots import plot_samples
+from .storage import StorageStrategy, MemoryStorage, DiskStorage, HybridStorage
 
 @dataclass
 class DatasetInfo:
@@ -60,28 +61,28 @@ class ManagedDataset(Dataset, ABC):
     
     Key features:
     - Downloads and combines ALL available data (train + test) into one unified dataset
+    - Supports multiple storage strategies (memory, disk, hybrid)
     - Provides get_dataloaders() method for train/val/test splits
     - Implements visualization methods for data exploration
-    - Handles transformations appropriately for tensor data
-    - Provides dataset information via print_info()
     """
     
     def __init__(self, 
                  root: Optional[Union[str, Path]] = None,
                  transform: Optional[Callable] = None,
                  target_transform: Optional[Callable] = None,
-                 force_download: bool = False):
+                 force_download: bool = False,
+                 storage_strategy: Literal["memory", "disk", "hybrid"] = "hybrid",
+                 memory_threshold_mb: float = 500.0):
         """
         Initialize managed dataset.
 
-        Downloads and loads ALL available data (train + test) into a unified dataset.
-        Use get_dataloaders() to split into train/val/test sets.
-        
         Args:
             root: Root directory for data (defaults to project_root/data)
             transform: Transform to apply to samples
             target_transform: Transform to apply to targets
             force_download: Whether to force re-download
+            storage_strategy: Storage strategy ('memory', 'disk', 'hybrid')
+            memory_threshold_mb: Memory threshold for hybrid strategy (in megabytes)
         """
         if root is None:
             # Find project root by looking for pyproject.toml
@@ -102,11 +103,50 @@ class ManagedDataset(Dataset, ABC):
         # Create dataset directory
         self.dataset_root.mkdir(parents=True, exist_ok=True)
         
+        # Initialize storage strategy
+        self.storage = self._create_storage_strategy(storage_strategy, memory_threshold_mb)
+        
         # Always download (but won't re-download if files exist unless force_download=True)
         self._download(force_download)
         
-        # Load ALL data (train + test) into unified dataset
-        self._load_data()
+        # Load or prepare data using storage strategy
+        if not self.storage.is_ready() or force_download:
+            self._load_and_store_data()
+
+    def _create_storage_strategy(self, strategy: Literal["hybrid", "memory", "disk"], memory_threshold_mb: float) -> StorageStrategy:
+        """Create the appropriate storage strategy."""
+        if strategy == "memory":
+            return MemoryStorage(self.dataset_root)
+        elif strategy == "disk":
+            return DiskStorage(self.dataset_root)
+        elif strategy == "hybrid":
+            return HybridStorage(self.dataset_root, memory_threshold_mb)
+        else:
+            raise ValueError(f"Unknown storage strategy: {strategy}. Use 'memory', 'disk', or 'hybrid'.")
+    
+    def _load_and_store_data(self) -> None:
+        """Load raw data and store using the chosen strategy."""
+        print("Loading raw dataset data...")
+        data, targets = self._load_raw_data()
+        
+        metadata = {
+            'dataset_name': self.dataset_name,
+            'dataset_info': self.dataset_info,
+            'total_samples': len(data)
+        }
+        
+        self.storage.save_data(data, targets, metadata)
+        print(f"Storage complete. Memory usage: {self.storage.get_memory_usage_mb():.1f} MB")
+    
+    @abstractmethod
+    def _load_raw_data(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Load raw data from downloaded files.
+        
+        Returns:
+            Tuple of (data, targets) as numpy arrays
+        """
+        pass
     
     @property
     @abstractmethod
@@ -142,19 +182,27 @@ class ManagedDataset(Dataset, ABC):
             download_and_extract_dataset(info, self.dataset_root, force_download=force_download)
     
     @abstractmethod
-    def _load_data(self) -> None:
-        """Load ALL dataset data (train + test) into memory as unified dataset."""
-        pass
-    
-    @abstractmethod
     def __len__(self) -> int:
         """Return the size of the complete dataset."""
         pass
 
-    @abstractmethod
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         """Get a sample from the dataset."""
-        pass
+        # Load sample using storage strategy
+        img_data, target = self.storage.load_sample(index)
+        
+        # Convert to tensor
+        if isinstance(img_data, np.ndarray):
+            if img_data.dtype != np.float32:
+                img_data = img_data.astype(np.float32)
+            img_tensor = torch.from_numpy(img_data)
+        else:
+            img_tensor = img_data
+        
+        # Apply transforms if provided
+        img_tensor, target = self._apply_transforms(img_tensor, target)
+        
+        return img_tensor, target
     
     def print_info(self) -> None:
         """Print information about this dataset."""

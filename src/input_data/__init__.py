@@ -72,48 +72,46 @@ def list_supported_datasets() -> List[str]:
 
 # Main API function for creating datasets
 def create_dataset(
-    dataset: SupportedDatasets,
-    root: Optional[Union[str, Path]] = None,
+    dataset: Union[SupportedDatasets, str],
+    root: Optional[str] = None,
     transform: Optional[Callable] = None,
     target_transform: Optional[Callable] = None,
     force_download: bool = False,
-    **kwargs
+    storage_strategy: str = "hybrid",
+    memory_threshold_mb: float = 500.0
 ) -> ManagedDataset:
     """
-    Main API function to create dataset instances.
-    
-    This is the primary function for creating datasets in the input_data package.
-    All datasets load complete data (train + test) and use get_dataloaders() for splits.
+    Create a dataset instance.
     
     Args:
-        dataset: Dataset to create out of the SupportedDatasets list.
-        root: Optional[Union[str, Path]] = None,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
-        force_download: bool = False,
-        **kwargs: Additional arguments passed to the dataset constructor
-        
+        dataset: Dataset to create (enum or string)
+        root: Root directory for data storage
+        transform: Transform function for samples
+        target_transform: Transform function for targets
+        force_download: Force re-download of data
+        storage_strategy: Storage strategy ('memory', 'disk', 'hybrid')
+        memory_threshold_mb: Memory threshold for hybrid strategy (MB)
+    
     Returns:
-        Complete dataset instance (loads all available data)
+        ManagedDataset instance
         
-    Example:
-        from input_data import create_dataset, SupportedDatasets
+    Examples:
+        # Small dataset - use memory storage
+        mnist = create_dataset(SupportedDatasets.MNIST, storage_strategy="memory")
         
-        dataset = create_dataset(SupportedDatasets.MNIST)
-
-        train_loader, val_loader, test_loader = dataset.get_dataloaders(
-            train_split=0.7, val_split=0.15, test_split=0.15
-        )
+        # Large dataset - use disk storage  
+        large_dataset = create_dataset(SupportedDatasets.CIFAR10, storage_strategy="disk")
         
-        dataset.print_info()
-        
-        dataset.show_random_samples()
-        
-        dataset.show_illustrative_samples()
+        # Automatic choice based on size
+        dataset = create_dataset(SupportedDatasets.MNIST, storage_strategy="hybrid", memory_threshold_mb=100)
     """
     # Handle both enum and string inputs
-    if not isinstance(dataset, SupportedDatasets):
-        raise TypeError(f"dataset must be SupportedDatasets enum, got {type(dataset)}")
+    if not isinstance(dataset, (SupportedDatasets, str)):
+        raise TypeError(f"dataset must be SupportedDatasets enum or string, got {type(dataset)}")
+    
+    # If string is passed, convert to enum
+    if isinstance(dataset, str):
+        dataset = SupportedDatasets[dataset.upper()]
     
     # Map enum to dataset classes
     dataset_class_map = {
@@ -128,8 +126,9 @@ def create_dataset(
     dataset_class: Type[ManagedDataset] = dataset_class_map[dataset]
     return dataset_class(
         root=root,
-        transform=transform,
+        transform=transform, 
         target_transform=target_transform,
         force_download=force_download,
-        **kwargs
+        storage_strategy=storage_strategy,
+        memory_threshold_mb=memory_threshold_mb
     )
