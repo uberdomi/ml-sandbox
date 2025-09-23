@@ -23,7 +23,7 @@ CIFAR10_DOWNLOADS = [
     DownloadInfo(
         name="CIFAR-10 Dataset",
         filename="cifar-10-python.tar.gz",
-        extract_folder="images",
+        extract_folder="",
         urls=[
             "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
             "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
