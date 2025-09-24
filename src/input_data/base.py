@@ -95,8 +95,8 @@ class ManagedDataset(Dataset, ABC):
             else:
                 root = Path.cwd() / "data"
         
-        self.root = Path(root)
-        self.dataset_root = self.root / self.dataset_name
+        root = Path(root)
+        self.dataset_root = root / self.dataset_name
         self.transform = transform
         self.target_transform = target_transform
         
@@ -112,6 +112,8 @@ class ManagedDataset(Dataset, ABC):
         # Load or prepare data using storage strategy
         if not self.storage.is_ready() or force_download:
             self._load_and_store_data()
+
+    # --- Internal methods ---
 
     def _create_storage_strategy(self, strategy: Literal["hybrid", "memory", "disk"], memory_threshold_mb: float) -> StorageStrategy:
         """Create the appropriate storage strategy."""
@@ -148,6 +150,23 @@ class ManagedDataset(Dataset, ABC):
         """
         pass
     
+    @abstractmethod
+    def _extraction_valid(self) -> bool:
+        """Check if the extracted dataset is valid."""
+        pass
+    
+    def _download(self, force_download: bool = False) -> None:
+        """Download all dataset files (both train and test)."""
+        if self._extraction_valid() and not force_download:
+            print("="*5, f"Dataset '{self.dataset_name}' already exists and is valid.", "="*5)
+            return
+
+        print("="*5, f"Downloading dataset '{self.dataset_name}' to {self.dataset_root}...", "="*5)
+        for info in self.download_infos:
+            download_and_extract_dataset(info, self.dataset_root, force_download=force_download)
+
+    # --- Dataset properties ---
+
     @property
     @abstractmethod
     def download_infos(self) -> List[DownloadInfo]:
@@ -166,25 +185,17 @@ class ManagedDataset(Dataset, ABC):
         """Get the DatasetInfo for this dataset."""
         pass
     
-    @abstractmethod
-    def _extraction_valid(self) -> bool:
-        """Check if the extracted dataset is valid."""
-        pass
+    def print_info(self) -> None:
+        """Print information about this dataset."""
+        info = self.dataset_info
+        print(info.print())
+        print(f"Total samples loaded: {len(self):,}")
     
-    def _download(self, force_download: bool = False) -> None:
-        """Download all dataset files (both train and test)."""
-        if self._extraction_valid() and not force_download:
-            print("="*5, f"Dataset '{self.dataset_name}' already exists and is valid.", "="*5)
-            return
-
-        print("="*5, f"Downloading dataset '{self.dataset_name}' to {self.dataset_root}...", "="*5)
-        for info in self.download_infos:
-            download_and_extract_dataset(info, self.dataset_root, force_download=force_download)
+    # --- Dataset interface methods ---
     
-    @abstractmethod
     def __len__(self) -> int:
         """Return the size of the complete dataset."""
-        pass
+        return self.storage.get_dataset_size()
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         """Get a sample from the dataset."""
@@ -203,13 +214,22 @@ class ManagedDataset(Dataset, ABC):
         img_tensor, target = self._apply_transforms(img_tensor, target)
         
         return img_tensor, target
+
+    def _apply_transforms(self, sample: torch.Tensor, target: int) -> Tuple[torch.Tensor, int]:
+        """
+        Apply transforms to sample and target.
+        
+        Note: Since datasets now return tensors by default, transforms should expect
+        tensor inputs rather than PIL Images.
+        """
+        if self.transform is not None:
+            sample = self.transform(sample)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        return sample, target
     
-    def print_info(self) -> None:
-        """Print information about this dataset."""
-        info = self.dataset_info
-        print(info.print())
-        print(f"Total samples loaded: {len(self):,}")
-    
+    # --- Data loading methods ---
+
     def get_dataloaders(self, 
                        train_split: float = 0.6,
                        val_split: float = 0.2, 
@@ -275,6 +295,8 @@ class ManagedDataset(Dataset, ABC):
         
         return dataloaders
     
+    # --- Visualization methods ---
+    
     def show_random_samples(self, num_samples: int = 8, figsize: Tuple[int, int] = (12, 8)) -> None:
         """Display random samples from the dataset."""
         if len(self) == 0:
@@ -323,17 +345,3 @@ class ManagedDataset(Dataset, ABC):
                 label_list.append(target)
 
         plot_samples(image_list, labels=label_list, suptitle=f"Illustrative samples of the {self.dataset_info.name} dataset")
-
-    
-    def _apply_transforms(self, sample: torch.Tensor, target: int) -> Tuple[torch.Tensor, int]:
-        """
-        Apply transforms to sample and target.
-        
-        Note: Since datasets now return tensors by default, transforms should expect
-        tensor inputs rather than PIL Images.
-        """
-        if self.transform is not None:
-            sample = self.transform(sample)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-        return sample, target

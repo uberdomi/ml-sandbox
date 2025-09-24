@@ -11,7 +11,7 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Tuple, Any, Optional, Union
+from typing import Any, Tuple, Dict
 import numpy as np
 from PIL import Image
 import torch
@@ -25,7 +25,7 @@ class StorageStrategy(ABC):
         self.storage_root.mkdir(exist_ok=True)
     
     @abstractmethod
-    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: dict = None) -> None:
+    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: Dict = None) -> None:
         """Save dataset to storage."""
         pass
     
@@ -58,16 +58,16 @@ class MemoryStorage(StorageStrategy):
         self.data = None
         self.targets = None
         self.metadata = {}
+        self.backup_file = self.storage_root / "memory_cache.pkl"
     
-    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: dict = None) -> None:
+    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: Dict = None) -> None:
         """Save data to memory."""
         self.data = data
         self.targets = targets
         self.metadata = metadata or {}
         
         # Also save to disk as backup
-        cache_file = self.storage_root / "memory_cache.pkl"
-        with open(cache_file, 'wb') as f:
+        with open(self.backup_file, 'wb') as f:
             pickle.dump({
                 'data': data,
                 'targets': targets,
@@ -88,7 +88,7 @@ class MemoryStorage(StorageStrategy):
     
     def is_ready(self) -> bool:
         """Check if memory storage is ready."""
-        return self.data is not None or (self.storage_root / "memory_cache.pkl").exists()
+        return self.data is not None or self.backup_file.exists()
     
     def get_memory_usage_mb(self) -> float:
         """Estimate memory usage."""
@@ -98,10 +98,9 @@ class MemoryStorage(StorageStrategy):
     
     def _load_from_cache(self):
         """Load data from disk cache."""
-        cache_file = self.storage_root / "memory_cache.pkl"
-        if cache_file.exists():
-            with open(cache_file, 'rb') as f:
-                cache_data = pickle.load(f)
+        if self.backup_file.exists():
+            with open(self.backup_file, 'rb') as f:
+                cache_data: Dict[str, Any] = pickle.load(f)
                 self.data = cache_data['data']
                 self.targets = cache_data['targets']
                 self.metadata = cache_data.get('metadata', {})
@@ -123,7 +122,7 @@ class DiskStorage(StorageStrategy):
         self.file_index = {}
         self._load_metadata()
     
-    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: dict = None) -> None:
+    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: Dict = None) -> None:
         """Save data as individual image files."""
         print(f"Saving {len(data)} samples to disk storage...")
         
@@ -172,7 +171,18 @@ class DiskStorage(StorageStrategy):
     
     def is_ready(self) -> bool:
         """Check if disk storage is ready."""
-        return self.index_file.exists() and len(self.file_index) > 0
+        return self.index_file.exists() and self._file_index_valid()
+    
+    def _file_index_valid(self) -> bool:
+        """Check if the file index is valid."""
+        if self.file_index is None:
+            print("File index is not initialized.")
+            return False
+        for idx, info in self.file_index.items():
+            if not Path(info['filepath']).exists():
+                print(f"Missing file: {info['filepath']}")
+                return False
+        return True
     
     def get_memory_usage_mb(self) -> float:
         """Disk storage uses minimal memory."""
@@ -231,7 +241,7 @@ class HybridStorage(StorageStrategy):
         self.memory_threshold_mb = memory_threshold_mb
         self.strategy = None
     
-    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: dict = None) -> None:
+    def save_data(self, data: np.ndarray, targets: np.ndarray, metadata: Dict = None) -> None:
         """Choose storage strategy and save data."""
         # Estimate memory usage
         estimated_mb = (data.nbytes + targets.nbytes) / (1024 * 1024)
