@@ -316,9 +316,9 @@ class ManagedDataset(Dataset, ABC):
         
         image_list, label_list = [], []
         for idx in indices:
-            img, target = self[idx]
+            img, target_idx = self[idx]
             image_list.append(img)
-            label_list.append(target)
+            label_list.append(self.dataset_info.classes[target_idx] if self.dataset_info.classes else str(target_idx))
 
         plot_samples(image_list, labels=label_list, suptitle=f"Random samples of the {self.dataset_info.name} dataset")
     
@@ -337,10 +337,10 @@ class ManagedDataset(Dataset, ABC):
         
         # Collect samples for each class (stop when we have enough)
         for idx in range(len(self)):
-            img, target = self[idx]
-            if len(class_samples[target]) < num_per_class:
-                class_samples[target].append((idx, img, target))
-            
+            img, target_idx = self[idx]
+            if len(class_samples[target_idx]) < num_per_class:
+                class_samples[target_idx].append((idx, img, info.classes[target_idx] if info.classes else str(target_idx)))
+
             # Stop if we have enough samples for all classes
             if all(len(samples) >= num_per_class for samples in class_samples.values()):
                 break
