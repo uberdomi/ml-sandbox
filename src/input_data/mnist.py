@@ -8,12 +8,10 @@ download information and metadata definitions.
 import struct
 import gzip
 import numpy as np
-from typing import List, Tuple
-
-import torch
+from typing import List, Tuple, override
 
 from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo, check_integrity
+from .downloaders import DownloadInfo
 
 
 # MNIST-specific download information
@@ -21,7 +19,6 @@ MNIST_DOWNLOADS = [
     DownloadInfo(
         name="MNIST Training Images",
         filename="train-images-idx3-ubyte.gz",
-        extract_folder="images",
         urls=[
             "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz"
@@ -32,7 +29,6 @@ MNIST_DOWNLOADS = [
     DownloadInfo(
         name="MNIST Training Labels",
         filename="train-labels-idx1-ubyte.gz",
-        extract_folder="labels",
         urls=[
             "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz"
@@ -43,7 +39,6 @@ MNIST_DOWNLOADS = [
     DownloadInfo(
         name="MNIST Test Images",
         filename="t10k-images-idx3-ubyte.gz",
-        extract_folder="images",
         urls=[
             "http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz"
@@ -54,7 +49,6 @@ MNIST_DOWNLOADS = [
     DownloadInfo(
         name="MNIST Test Labels",
         filename="t10k-labels-idx1-ubyte.gz",
-        extract_folder="labels",
         urls=[
             "http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz",
             "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz"
@@ -86,36 +80,22 @@ class MnistDataset(ManagedDataset):
     - hybrid: Automatic choice based on memory threshold
     """
     
+    @override
     @property
     def download_infos(self) -> List[DownloadInfo]:
         return MNIST_DOWNLOADS
 
+    @override
     @property
     def dataset_name(self) -> str:
         return "mnist"
-    
+
+    @override
     @property
     def dataset_info(self) -> DatasetInfo:
         return MNIST_INFO
     
-    def _extraction_valid(self):
-        # Check integrity of downloaded data
-        for info in self.download_infos:
-            file_path_gz = self.dataset_root / info.filename
-
-            # Check the validity of the .gz files
-            if not check_integrity(file_path_gz, info.md5, info.sha256):
-                print(f"File {info.filename} failed integrity check.")
-                return False
-
-            # Check the existence of the extracted files
-            file_path_bin = self.dataset_root / info.extract_folder / info.filename.replace('.gz', '')
-            if not file_path_bin.exists():
-                print(f"Extracted file {info.filename.replace('.gz', '')} does not exist.")
-                return False
-
-        return True
-    
+    @override
     def _load_raw_data(self) -> Tuple[np.ndarray, np.ndarray]:
         """Load raw MNIST data from downloaded files."""
         all_images = []
@@ -161,68 +141,3 @@ class MnistDataset(ManagedDataset):
               f"(train: {len(train_images):,}, test: {len(test_images):,})")
         
         return combined_data, combined_labels
-    
-    def _load_data(self) -> None:
-        """Load ALL MNIST data (train + test) into unified dataset."""
-        all_images = []
-        all_labels = []
-        
-        # Load training data
-        train_images_path = self.dataset_root / "train-images-idx3-ubyte.gz"
-        train_labels_path = self.dataset_root / "train-labels-idx1-ubyte.gz"
-        
-        with gzip.open(train_images_path, 'rb') as f:
-            magic, num_images, rows, cols = struct.unpack('>IIII', f.read(16))
-            train_images = np.frombuffer(f.read(), dtype=np.uint8)
-            train_images = train_images.reshape(num_images, rows, cols)
-        
-        with gzip.open(train_labels_path, 'rb') as f:
-            magic, num_labels = struct.unpack('>II', f.read(8))
-            train_labels = np.frombuffer(f.read(), dtype=np.uint8)
-        
-        all_images.append(train_images)
-        all_labels.append(train_labels)
-        
-        # Load test data
-        test_images_path = self.dataset_root / "t10k-images-idx3-ubyte.gz"
-        test_labels_path = self.dataset_root / "t10k-labels-idx1-ubyte.gz"
-        
-        with gzip.open(test_images_path, 'rb') as f:
-            magic, num_images, rows, cols = struct.unpack('>IIII', f.read(16))
-            test_images = np.frombuffer(f.read(), dtype=np.uint8)
-            test_images = test_images.reshape(num_images, rows, cols)
-        
-        with gzip.open(test_labels_path, 'rb') as f:
-            magic, num_labels = struct.unpack('>II', f.read(8))
-            test_labels = np.frombuffer(f.read(), dtype=np.uint8)
-        
-        all_images.append(test_images)
-        all_labels.append(test_labels)
-        
-        # Combine all data
-        self.data = np.concatenate(all_images, axis=0)
-        self.targets = np.concatenate(all_labels, axis=0)
-        
-        print("="*5, f"Loaded complete MNIST dataset: {len(self.data):,} samples "
-              f"(train: {len(train_images):,}, test: {len(test_images):,})", "="*5)
-    
-    def __len__(self) -> int:
-        return len(self.data)
-    
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
-        """
-        Get a sample from MNIST dataset.
-        
-        Returns:
-            sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
-            target: int class label (0-9)
-        """
-        img, target = self.data[index], int(self.targets[index])
-        
-        # Convert to tensor directly (values 0-255 -> 0-1)
-        img_tensor = torch.from_numpy(img.astype(np.float32) / 255.0).unsqueeze(0)  # Add channel dimension
-        
-        # Apply transforms if provided
-        img_tensor, target = self._apply_transforms(img_tensor, target)
-        
-        return img_tensor, target

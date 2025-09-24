@@ -8,13 +8,10 @@ download information and metadata definitions.
 import struct
 import gzip
 import numpy as np
-from typing import Tuple
-from enum import Enum
-
-import torch
+from typing import Tuple, override
 
 from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo, check_integrity
+from .downloaders import DownloadInfo
 
 
 # Fashion-MNIST-specific download information
@@ -22,7 +19,6 @@ FASHION_MNIST_DOWNLOADS = [
     DownloadInfo(
         name="Fashion-MNIST Training Images",
         filename="train-images-idx3-ubyte.gz",
-        extract_folder="images",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-images-idx3-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/train-images-idx3-ubyte.gz"],
@@ -32,7 +28,6 @@ FASHION_MNIST_DOWNLOADS = [
     DownloadInfo(
         name="Fashion-MNIST Training Labels",
         filename="train-labels-idx1-ubyte.gz",
-        extract_folder="labels",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-labels-idx1-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/train-labels-idx1-ubyte.gz"
@@ -43,7 +38,6 @@ FASHION_MNIST_DOWNLOADS = [
     DownloadInfo(
         name="Fashion-MNIST Test Images",
         filename="t10k-images-idx3-ubyte.gz",
-        extract_folder="images",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-images-idx3-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/t10k-images-idx3-ubyte.gz"
@@ -54,7 +48,6 @@ FASHION_MNIST_DOWNLOADS = [
     DownloadInfo(
         name="Fashion-MNIST Test Labels",
         filename="t10k-labels-idx1-ubyte.gz",
-        extract_folder="labels",
         urls=[
             "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-labels-idx1-ubyte.gz",
             "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/t10k-labels-idx1-ubyte.gz"
@@ -87,39 +80,25 @@ class FashionMnistDataset(ManagedDataset):
         sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
         target: int class label (0-9)
     """
-    
+
+    @override
     @property
     def download_infos(self) -> list[DownloadInfo]:
         return FASHION_MNIST_DOWNLOADS
-    
+
+    @override
     @property
     def dataset_name(self) -> str:
         return "fashion-mnist"
-    
+
+    @override
     @property
     def dataset_info(self) -> DatasetInfo:
         return FASHION_MNIST_INFO
-    
-    def _extraction_valid(self):
-        # Check integrity of downloaded data
-        for info in self.download_infos:
-            file_path_gz = self.dataset_root / info.filename
 
-            # Check the validity of the .gz files
-            if not check_integrity(file_path_gz, info.md5, info.sha256):
-                print(f"File {info.filename} failed integrity check.")
-                return False
-
-            # Check the existence of the extracted files
-            file_path_bin = self.dataset_root / info.extract_folder / info.filename.replace('.gz', '')
-            if not file_path_bin.exists():
-                print(f"Extracted file {info.filename.replace('.gz', '')} does not exist.")
-                return False
-
-        return True
-    
-    def _load_data(self) -> None:
-        """Load ALL Fashion-MNIST data (train + test) into unified dataset."""
+    @override
+    def _load_raw_data(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Load raw Fashion-MNIST data (train + test) from downloaded files."""
         all_images = []
         all_labels = []
         
@@ -155,30 +134,11 @@ class FashionMnistDataset(ManagedDataset):
         all_images.append(test_images)
         all_labels.append(test_labels)
         
-        # Combine all data
-        self.data = np.concatenate(all_images, axis=0)
-        self.targets = np.concatenate(all_labels, axis=0)
-        
-        print(f"Loaded complete Fashion-MNIST dataset: {len(self.data):,} samples "
+        # Combine all data and normalize to 0-1 range
+        combined_data = np.concatenate(all_images, axis=0).astype(np.float32) / 255.0
+        combined_labels = np.concatenate(all_labels, axis=0)
+
+        print(f"Loaded complete Fashion-MNIST dataset: {len(combined_data):,} samples "
               f"(train: {len(train_images):,}, test: {len(test_images):,})")
-    
-    def __len__(self) -> int:
-        return len(self.data)
-    
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
-        """
-        Get a sample from Fashion-MNIST dataset.
-        
-        Returns:
-            sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
-            target: int class label (0-9)
-        """
-        img, target = self.data[index], int(self.targets[index])
-        
-        # Convert to tensor directly (values 0-255 -> 0-1)
-        img_tensor = torch.from_numpy(img.astype(np.float32) / 255.0).unsqueeze(0)  # Add channel dimension
-        
-        # Apply transforms if provided
-        img_tensor, target = self._apply_transforms(img_tensor, target)
-        
-        return img_tensor, target
+
+        return combined_data, combined_labels

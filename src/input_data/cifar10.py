@@ -6,16 +6,11 @@ download information and metadata definitions.
 """
 
 import pickle
-import tarfile
-from pathlib import Path
 import numpy as np
-from typing import Tuple
-from enum import Enum
-
-import torch
+from typing import Tuple, override
 
 from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo, check_integrity
+from .downloaders import DownloadInfo, extract_archive
 
 
 # CIFAR-10-specific download information
@@ -23,7 +18,6 @@ CIFAR10_DOWNLOADS = [
     DownloadInfo(
         name="CIFAR-10 Dataset",
         filename="cifar-10-python.tar.gz",
-        extract_folder="",
         urls=[
             "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
             "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
@@ -57,41 +51,42 @@ class Cifar10Dataset(ManagedDataset):
         sample: torch.Tensor of shape (3, 32, 32) with values in [0, 1]
         target: int class label (0-9)
     """
-    
+
+    @override
     @property
     def download_infos(self) -> list[DownloadInfo]:
         return CIFAR10_DOWNLOADS
-    
+
+    @override
     @property
     def dataset_name(self) -> str:
         return "cifar-10"
-    
+
+    @override
     @property
     def dataset_info(self) -> DatasetInfo:
         return CIFAR10_INFO
     
-    def _extraction_valid(self):
-        # Check integrity of downloaded data
-        for info in self.download_infos:
-            file_path_gz = self.dataset_root / info.filename
-
-            # Check the validity of the .gz files
-            if not check_integrity(file_path_gz, info.md5, info.sha256):
-                print(f"File {info.filename} failed integrity check.")
-                return False
-
-            # Check the existence of the extracted folder
-            extracted_dir = self.dataset_root / "cifar-10-batches-py"
-            if not extracted_dir.exists():
-                print(f"Extracted directory cifar-10-batches-py does not exist.")
-                return False
-
-        return True
-    
-    def _load_data(self) -> None:
-        """Load ALL CIFAR-10 data (train + test) into unified dataset."""
+    @override
+    def _download(self, force_download: bool = False) -> None:
+        """Download all dataset files (both train and test) and additionaly extract its contents to an archive folder."""
+        super()._download(force_download=force_download)
+        
+        # After downloading, extract the archive
+        archive_path = self.dataset_root / "cifar-10-python.tar.gz"
         extracted_dir = self.dataset_root / "cifar-10-batches-py"
         
+        if archive_path.exists():
+            extract_archive(
+                archive_path, to_path=extracted_dir, remove_finished=False)
+        else:
+            raise FileNotFoundError(f"Expected archive not found at {archive_path}")
+
+    @override
+    def _load_raw_data(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Load all CIFAR-10 data (train + test) from downloaded files."""
+        extracted_dir = self.dataset_root / "cifar-10-batches-py"
+
         if not extracted_dir.exists():
             raise FileNotFoundError(
                 f"CIFAR-10 data directory not found at {extracted_dir}. "
@@ -144,25 +139,4 @@ class Cifar10Dataset(ManagedDataset):
                 meta_dict = pickle.load(f, encoding='bytes')
                 self.class_names = [name.decode('utf-8') for name in meta_dict[b'label_names']]
         else:
-            self.class_names = CIFAR10_INFO.classes
-    
-    def __len__(self) -> int:
-        return len(self.data)
-    
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
-        """
-        Get a sample from CIFAR-10 dataset.
-        
-        Returns:
-            sample: torch.Tensor of shape (3, 32, 32) with values in [0, 1]
-            target: int class label (0-9)
-        """
-        img, target = self.data[index], int(self.targets[index])
-        
-        # Convert to tensor and normalize (values 0-255 -> 0-1)
-        img_tensor = torch.from_numpy(img.astype(np.float32) / 255.0)
-        
-        # Apply transforms if provided
-        img_tensor, target = self._apply_transforms(img_tensor, target)
-        
-        return img_tensor, target
+            self.class_names = self.dataset_info.classes

@@ -18,8 +18,7 @@ Example usage:
     dataset.show_random_samples()
 """
 
-from typing import List, Optional, Union, Callable, Type
-from pathlib import Path
+from typing import List, Optional, Union, Callable, Type, Literal
 
 # Import dataset classes from modular structure
 from .base import ManagedDataset
@@ -77,7 +76,7 @@ def create_dataset(
     transform: Optional[Callable] = None,
     target_transform: Optional[Callable] = None,
     force_download: bool = False,
-    storage_strategy: str = "hybrid",
+    storage_strategy: Literal["hybrid", "memory", "disk"] = "hybrid",
     memory_threshold_mb: float = 500.0
 ) -> ManagedDataset:
     """
