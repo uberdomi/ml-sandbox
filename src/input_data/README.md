@@ -14,13 +14,12 @@ A comprehensive, modern Python package for managing and loading popular ML datas
 
 - **Primary API**: `create_dataset()` function with enum or string-based dataset selection
 - **Type Safety**: Full type hints and dataclass-based configuration
-- **Multiple Access Methods**: Support for enums, strings, and alternative dataset names
 
 ### 🧩 Modular Architecture
 
-- **Clean Separation**: Each dataset in its own module (`mnist.py`, `fashion_mnist.py`, `cifar10.py`)
-- **Base Classes**: Common functionality in `base.py` with abstract base class `ManagedDataset`
-- **Flexible Imports**: Use the main API or import specific datasets directly
+- **Clean Separation**: Each dataset in its own module in the `implementations/` directory (`mnist.py`, `fashion_mnist.py`, `cifar10.py`)
+- **Base Classes**: Common functionality in the `structure/` directory with the abstract class `ManagedDataset` implemented in `base.py` with support functionalities implemented in other files and the `downloaders` directory
+- **Flexible Imports**: Use the main API (recommended) or import specific datasets directly
 
 ### 📊 Rich Dataset Information
 
@@ -47,7 +46,11 @@ A comprehensive, modern Python package for managing and loading popular ML datas
 ### Basic Usage
 
 ```python
-from input_data import create_dataset, SupportedDatasets
+from src.input_data import create_dataset, SupportedDatasets, list_supported_datasets
+
+# List all supported datasets
+datasets = list_supported_datasets()
+print(f"Supported datasets: {', '.join(datasets)}")
 
 # Create a dataset (loads all data: train + test)
 dataset = create_dataset(SupportedDatasets.MNIST)
@@ -95,10 +98,10 @@ print(f"License: {info.license}")
 
 ```python
 # Show random samples
-dataset.show_random_samples(num_samples=16)
+dataset.show_random_samples(num_samples=5)
 
 # Show representative samples from each class
-dataset.show_illustrative_samples(samples_per_class=3)
+dataset.show_illustrative_samples()
 ```
 
 ## 🔧 Advanced Usage
@@ -127,6 +130,12 @@ dataset = create_dataset("mnist", root="/path/to/data")
 dataset = create_dataset("mnist", force_download=True)
 ```
 
+### Adjust Dataset Strategy
+
+```python
+dataset = create_dataset("mnist", storage_strategy="disk)
+```
+
 ### Direct Module Imports
 
 ```python
@@ -149,14 +158,20 @@ print(MNIST_INFO.classes)  # ["0", "1", "2", ...]
 
 ```text
 input_data/
-├── __init__.py          # Main API and exports
-├── base.py              # ManagedDataset abstract base class  
-├── enums.py             # DatasetDownloads and DatasetInfo dataclasses
-├── downloaders.py       # Download utilities
-├── mnist.py             # MNIST dataset implementation
-├── fashion_mnist.py     # Fashion-MNIST dataset implementation
-├── cifar10.py           # CIFAR-10 dataset implementation
-└── datasets.py          # Legacy compatibility layer
+├── __init__.py             # Main API and exports
+├── downloaders             # --- File download and extraction utilities
+│   ├── datasets.py         # Support for datasets
+│   ├── extract.py          # File extraction utilities
+│   └── fetch.py            # File download utilities
+├── structure               # --- Base structure of the Dataset classes
+│   ├── base.py             # Base class implementation
+│   ├── plots.py            # Plotting utilities
+│   └── storage.py          # Data storage strategies (disk or memory)
+├── implementations         # --- Concrete dataset implementations
+│   ├── cifar10.py          # The CIFAR10 Dataset
+│   ├── fashion_mnist.py    # The MNIST Dataset
+│   └── mnist.py            # The FASHOIN-MNIST Dataset
+├── README.md
 ```
 
 ### Class Hierarchy
@@ -171,8 +186,8 @@ ManagedDataset (ABC)
 ### Key Classes
 
 - **`ManagedDataset`**: Abstract base class with common functionality
-- **`DatasetDownloads`**: Dataclass for download URLs, checksums, and metadata
-- **`DatasetInfo`**: Dataclass for dataset metadata (classes, shapes, licenses)
+- **`DownloadInfo`**: Dataclass for download URLs, and checksums
+- **`DatasetInfo`**: Dataclass for dataset metadata (classes, shapes, licenses, detailed descriptions)
 - **`SupportedDatasets`**: Enum for type-safe dataset selection
 
 ## 🔍 API Reference
@@ -190,12 +205,10 @@ Create a dataset instance.
 - `transform`: Optional transform function
 - `target_transform`: Optional target transform function  
 - `force_download`: Force re-download even if data exists
+- `storage_strategy`: Storage strategy - where to load the data (memory or disk, or chosen by the hybrid approach)
+- `memory_threshold_mb`: Memory threshold in megabytes for hybrid strategy
 
 **Returns:** Dataset instance with unified train+test data
-
-#### `get_dataset_info(dataset) -> DatasetInfo`
-
-Get dataset metadata without creating dataset instance.
 
 #### `list_supported_datasets() -> List[str]`
 
@@ -225,13 +238,13 @@ Print comprehensive dataset information.
 
 Display random samples from the dataset.
 
-#### `show_illustrative_samples(samples_per_class=3, figsize=(15, 10)) -> None`
+#### `show_illustrative_samples(num_per_class=1, figsize=(15, 10)) -> None`
 
 Display representative samples from each class.
 
 ### Properties
 
-- `dataset_name`: String identifier for the dataset
+- `dataset_name`: String identifier for the dataset (used in the downloads folder)
 - `dataset_info`: DatasetInfo object with metadata
 - `dataset_root`: Path where dataset files are stored
 
@@ -245,7 +258,6 @@ python -m pytest tests/test_datasets.py -v
 
 # Run specific test categories
 python -m pytest tests/test_datasets.py -k "mnist" -v
-python -m pytest tests/test_datasets.py -k "create_dataset" -v
 ```
 
 ## 📊 Usage Examples
@@ -253,7 +265,7 @@ python -m pytest tests/test_datasets.py -k "create_dataset" -v
 ### Complete ML Workflow
 
 ```python
-from input_data import create_dataset, SupportedDatasets
+from src.input_data import create_dataset, SupportedDatasets
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -317,37 +329,6 @@ print(f"Classes: {info.classes}")
 print(f"Class {label}: {info.classes[label]}")
 ```
 
-## 🔄 Migration from Old API
-
-If you're upgrading from the old train/test split API:
-
-### Old API ❌
-
-```python
-# OLD: Separate train/test datasets
-train_dataset = MnistDataset(train=True)
-test_dataset = MnistDataset(train=False)
-
-train_loader = DataLoader(train_dataset, batch_size=32)
-test_loader = DataLoader(test_dataset, batch_size=32)
-```
-
-### New API ✅
-
-```python
-# NEW: Unified dataset with flexible splits
-dataset = create_dataset("mnist")
-
-loaders = dataset.get_dataloaders(
-    train_split=0.8, val_split=0.1, test_split=0.1,
-    batch_size=32
-)
-
-train_loader = loaders['train']
-val_loader = loaders['val'] 
-test_loader = loaders['test']
-```
-
 ## 📋 Requirements
 
 - Python 3.8+
@@ -367,12 +348,6 @@ test_loader = loaders['test']
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Original dataset creators and maintainers
-- PyTorch team for the excellent framework
-- Contributors to the machine learning community
 
 ---
 
