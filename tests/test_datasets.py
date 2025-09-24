@@ -16,22 +16,18 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # Classes and functions to test - updated for modular structure
-from input_data import (
+from src.input_data import (
     create_dataset,
-    get_dataset_info,
     SupportedDatasets,
+    MnistDataset,
+    FashionMnistDataset,
+    Cifar10Dataset
 )
 
-# Import from modular structure for direct testing
-from input_data.base import ManagedDataset
-from input_data.mnist import MnistDataset, MnistDownloads
-from input_data.fashion_mnist import FashionMnistDataset
-from input_data.cifar10 import Cifar10Dataset
-
 # Import functions that aren't in __all__ but needed for testing
-from input_data.downloaders import download_dataset, dataset_exists
+from src.input_data.downloaders import download_dataset, dataset_exists
 
-# Configure logging  
+# Configure logging
 logger = logging.getLogger(__name__)
 
 

@@ -39,8 +39,8 @@ class TestPlots:
         tensor[10:18, 10:18] = 1.0  # White square
         tensor[5:23, 5] = 0.5       # Gray vertical line
         tensor[5, 5:23] = 0.5       # Gray horizontal line
-        
-        fig, ax = plot_sample_grayscale(tensor, label="Test Pattern", figsize=(6, 6))
+
+        fig, ax = plot_sample_grayscale(tensor, label="Test Pattern", figsize=(6, 6), show=False)
         plt.savefig(temp_data_dir / "test_single_grayscale.png")
         plt.close()
         
@@ -57,7 +57,7 @@ class TestPlots:
         tensor[1, 5:27, 5:15] = 1.0    # Green rectangle
         tensor[2, 15:25, 20:30] = 1.0  # Blue rectangle
         
-        fig, ax = plot_sample_rgb(tensor, label="RGB Test", figsize=(6, 6))
+        fig, ax = plot_sample_rgb(tensor, label="RGB Test", figsize=(6, 6), show=False)
         plt.savefig(temp_data_dir / "test_single_rgb.png")
         plt.close()
         
@@ -99,7 +99,7 @@ class TestPlots:
             tensors.append(tensor)
             labels.append(f"Pattern {i+1}")
         
-        fig, axes = plot_samples_grayscale(tensors, labels=labels, cols=3, figsize=(12, 8))
+        fig, axes = plot_samples_grayscale(tensors, labels=labels, cols=3, figsize=(12, 8), show=False)
         plt.savefig(temp_data_dir / "test_multiple_grayscale.png")
         plt.close()
 
@@ -158,7 +158,7 @@ class TestPlots:
         fig, axes = plot_tensor_grid(batch_gray, 
                                     labels=[f"Gray {i}" for i in range(8)],
                                     cols=4, 
-                                    suptitle="Grayscale Batch")
+                                    suptitle="Grayscale Batch", show=False)
         plt.savefig(temp_data_dir / "test_tensor_grid_gray.png")
         plt.close()
         
@@ -167,9 +167,8 @@ class TestPlots:
         # Test RGB batch
         fig, axes = plot_tensor_grid(batch_rgb, 
                                     labels=[f"RGB {i}" for i in range(6)],
-                                    is_rgb=True,
                                     cols=3,
-                                    suptitle="RGB Batch")
+                                    suptitle="RGB Batch", show=False)
         plt.savefig(temp_data_dir / "test_tensor_grid_rgb.png")
         plt.close()
         
@@ -203,7 +202,7 @@ class TestPlots:
         
         # Test grayscale detection
         grayscale_tensor = torch.randn(28, 28)
-        fig, ax = plot_sample(grayscale_tensor, label="Auto Gray", title="Auto-detected Grayscale")
+        fig, ax = plot_sample(grayscale_tensor, label="Auto Gray", title="Auto-detected Grayscale", show=False)
         plt.savefig(temp_data_dir / "test_plot_sample_gray.png")
         plt.close()
         
@@ -211,7 +210,7 @@ class TestPlots:
         
         # Test RGB detection with (3, H, W) format
         rgb_tensor_chw = torch.randn(3, 32, 32)
-        fig, ax = plot_sample(rgb_tensor_chw, label="Auto RGB", title="Auto-detected RGB (CHW)")
+        fig, ax = plot_sample(rgb_tensor_chw, label="Auto RGB", title="Auto-detected RGB (CHW)", show=False)
         plt.savefig(temp_data_dir / "test_plot_sample_rgb_chw.png")
         plt.close()
         
@@ -219,7 +218,7 @@ class TestPlots:
         
         # Test RGB detection with (H, W, 3) format
         rgb_tensor_hwc = torch.randn(32, 32, 3)
-        fig, ax = plot_sample(rgb_tensor_hwc, label="Auto RGB HWC", title="Auto-detected RGB (HWC)")
+        fig, ax = plot_sample(rgb_tensor_hwc, label="Auto RGB HWC", title="Auto-detected RGB (HWC)", show=False)
         plt.savefig(temp_data_dir / "test_plot_sample_rgb_hwc.png")
         plt.close()
         
@@ -227,7 +226,7 @@ class TestPlots:
         
         # Test grayscale with channel dim (1, H, W)
         grayscale_1hw = torch.randn(1, 28, 28)
-        fig, ax = plot_sample(grayscale_1hw, label="Gray 1HW", title="Grayscale (1, H, W)")
+        fig, ax = plot_sample(grayscale_1hw, label="Gray 1HW", title="Grayscale (1, H, W)", show=False)
         plt.savefig(temp_data_dir / "test_plot_sample_1hw.png")
         plt.close()
         
@@ -250,7 +249,8 @@ class TestPlots:
             grayscale_tensors, 
             labels=labels_gray, 
             suptitle="Auto-detected Grayscale Samples",
-            cols=3
+            cols=3,
+            show=False
         )
         plt.savefig(temp_data_dir / "test_plot_samples_gray_auto.png")
         plt.close()
@@ -268,7 +268,8 @@ class TestPlots:
             rgb_tensors,
             labels=labels_rgb,
             suptitle="Auto-detected RGB Samples",
-            cols=2
+            cols=2,
+            show=False
         )
         plt.savefig(temp_data_dir / "test_plot_samples_rgb_auto.png")
         plt.close()
@@ -282,7 +283,7 @@ class TestPlots:
         
         # Test with numpy array input
         numpy_tensor = np.random.randn(28, 28)
-        fig, ax = plot_sample(numpy_tensor, label="NumPy", title="NumPy Array Input")
+        fig, ax = plot_sample(numpy_tensor, label="NumPy", title="NumPy Array Input", show=False)
         plt.savefig(temp_data_dir / "test_plot_sample_numpy.png")
         plt.close()
         
@@ -291,7 +292,7 @@ class TestPlots:
         # Test invalid tensor shape
         try:
             invalid_tensor = torch.randn(2, 3, 4, 5)  # 4D tensor
-            plot_sample(invalid_tensor)
+            plot_sample(invalid_tensor, show=False)
             assert False, "Should have raised ValueError"
         except ValueError as e:
             assert "Invalid tensor shape" in str(e)
@@ -303,7 +304,7 @@ class TestPlots:
         
         # Test with single tensor in list
         single_tensor = [torch.randn(28, 28)]
-        fig, axes = plot_samples(single_tensor, labels=["Single"], suptitle="Single Tensor List")
+        fig, axes = plot_samples(single_tensor, labels=["Single"], suptitle="Single Tensor List", show=False)
         plt.savefig(temp_data_dir / "test_plot_samples_single.png")
         plt.close()
         
@@ -314,7 +315,7 @@ class TestPlots:
             torch.randn(28, 28),
             np.random.randn(28, 28)
         ]
-        fig, axes = plot_samples(mixed_tensors, labels=["Torch", "NumPy"], suptitle="Mixed Types")
+        fig, axes = plot_samples(mixed_tensors, labels=["Torch", "NumPy"], suptitle="Mixed Types", show=False)
         plt.savefig(temp_data_dir / "test_plot_samples_mixed.png")
         plt.close()
         
@@ -322,7 +323,7 @@ class TestPlots:
         
         # Test empty tensor list
         try:
-            plot_samples([])
+            plot_samples([], show=False)
             assert False, "Should have raised ValueError"
         except ValueError as e:
             assert "cannot be empty" in str(e)
@@ -335,7 +336,7 @@ class TestPlots:
         try:
             # Invalid tensor shape for grayscale
             invalid_tensor = torch.randn(2, 3, 4, 5)  # 4D tensor
-            plot_sample_grayscale(invalid_tensor)
+            plot_sample_grayscale(invalid_tensor, show=False)
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected
@@ -343,7 +344,7 @@ class TestPlots:
         try:
             # Invalid tensor shape for RGB
             invalid_tensor = torch.randn(28, 28)  # 2D tensor for RGB
-            plot_sample_rgb(invalid_tensor)
+            plot_sample_rgb(invalid_tensor, show=False)
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected
@@ -352,7 +353,7 @@ class TestPlots:
             # Mismatched labels length
             tensors = [torch.randn(28, 28) for _ in range(3)]
             labels = ["A", "B"]  # Only 2 labels for 3 tensors
-            plot_samples_grayscale(tensors, labels=labels)
+            plot_samples_grayscale(tensors, labels=labels, show=False)
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected
