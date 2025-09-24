@@ -74,11 +74,10 @@ class Cifar10Dataset(ManagedDataset):
         
         # After downloading, extract the archive
         archive_path = self.dataset_root / "cifar-10-python.tar.gz"
-        extracted_dir = self.dataset_root / "cifar-10-batches-py"
         
         if archive_path.exists():
             extract_archive(
-                archive_path, to_path=extracted_dir, remove_finished=False)
+                archive_path, to_path=self.dataset_root, remove_finished=False)
         else:
             raise FileNotFoundError(f"Expected archive not found at {archive_path}")
 
@@ -126,10 +125,10 @@ class Cifar10Dataset(ManagedDataset):
         # Reshape data from (N, 3072) to (N, 3, 32, 32)
         # CIFAR-10 data comes as flattened arrays where first 1024 entries are red channel,
         # next 1024 are green, and last 1024 are blue
-        self.data = combined_data.reshape(-1, 3, 32, 32)
-        self.targets = np.array(all_labels, dtype=np.int64)
-        
-        print(f"Loaded complete CIFAR-10 dataset: {len(self.data):,} samples "
+        combined_data = combined_data.reshape(-1, 3, 32, 32).astype(np.float32) / 255.0
+        combined_labels = np.array(all_labels, dtype=np.int64)
+
+        print(f"Loaded complete CIFAR-10 dataset: {len(combined_data):,} samples "
               f"(train: {train_samples:,}, test: {test_samples:,})")
         
         # Load class names for reference
@@ -140,3 +139,5 @@ class Cifar10Dataset(ManagedDataset):
                 self.class_names = [name.decode('utf-8') for name in meta_dict[b'label_names']]
         else:
             self.class_names = self.dataset_info.classes
+        
+        return combined_data, combined_labels

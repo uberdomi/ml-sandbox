@@ -72,7 +72,7 @@ def download_dataset(
     info = download_info  # For brevity
     
     if verbose:
-        print(f"Downloading and extracting {info.name}...")
+        print(f"Downloading {info.name}...")
         if info.description:
             print(f"Description: {info.description}")
     
