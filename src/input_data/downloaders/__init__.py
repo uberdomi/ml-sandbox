@@ -2,4 +2,5 @@
 Dataset utilities for downloading and extracting common ML datasets.
 """
 
-from .datasets import DownloadInfo, download_and_extract_dataset, check_integrity
+from .datasets import DownloadInfo, download_dataset
+from .fetch import download_url, check_integrity

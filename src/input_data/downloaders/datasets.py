@@ -1,24 +1,21 @@
 
 """
-Dataset utilities for downloading and extracting common ML datasets.
+Dataset utilities for downloading common ML datasets.
 """
 
 from pathlib import Path
 from typing import Optional, Union
 from dataclasses import dataclass
 
-from .fetch import download_url, check_integrity
-from .extract import extract_archive
+from .fetch import download_url
 
 @dataclass
-
 class DownloadInfo:
     """Information for downloading dataset files - URLs, checksums, and metadata.
     
     Args:
         name: Descriptive name of the dataset/file
         filename: Name to save the downloaded file as
-        extract_folder: Subfolder to extract into within root (default: "data")
         urls: List of mirror URLs to download from
         md5: Expected MD5 checksum (optional)
         sha256: Expected SHA256 checksum (optional)
@@ -28,7 +25,6 @@ class DownloadInfo:
     # File information
     name: str
     filename: str
-    extract_folder: str
     # Mirror URLs
     urls: list[str]
     # Integrity checks
@@ -57,46 +53,10 @@ class DownloadInfo:
             lines.append(f"  Description: {self.description}")
         return "\n".join(lines)
 
-def download_and_extract_archive(
-    url: str,
-    root: Union[str, Path],
-    filename: Optional[str] = None,
-    extract_folder: str = "data",
-    force_download: bool = False,
-    md5: Optional[str] = None,
-    sha256: Optional[str] = None,
-    remove_finished: bool = False
-) -> None:
-    """
-    Download and extract an archive in one step.
-    
-    Args:
-        url: URL to download from
-        root: Directory to download and extract the archive to
-        filename: Name to save the archive as
-        extract_folder: Subfolder to extract into within root
-        force_download: Whether to re-download even if file is already present
-        md5: Expected MD5 checksum
-        sha256: Expected SHA256 checksum  
-        remove_finished: Whether to delete the archive after extraction
-    """
-    root = Path(root)
-    
-    # Download the archive
-    archive_path = download_url(url, root, filename, force_download, md5, sha256)
-    
-    extract_root = root / extract_folder
-    extract_root.mkdir(parents=True, exist_ok=True)
-    
-    # Extract the archive
-    extract_archive(archive_path, extract_root, remove_finished)
-
-
-def download_and_extract_dataset(
+def download_dataset(
     download_info: DownloadInfo,
     root: Union[str, Path],
     force_download: bool = False,
-    remove_finished: bool = False,
     verbose: bool = True
 ) -> None:
     """
@@ -106,30 +66,34 @@ def download_and_extract_dataset(
         download_info: DownloadInfo object containing necessary information
         root: Root directory to download and extract the dataset
         force_download: Whether to re-download even if files are already present
-        remove_finished: Whether to delete the archive after extraction
         verbose: Whether to print progress information
     """
     root = Path(root)
+    info = download_info  # For brevity
     
     if verbose:
-        print(f"Downloading and extracting {download_info.name}...")
-        if download_info.description:
-            print(f"Description: {download_info.description}")
+        print(f"Downloading and extracting {info.name}...")
+        if info.description:
+            print(f"Description: {info.description}")
     
     # Try each mirror URL until one succeeds
     last_error = None
-    for url in download_info.urls:
+    for url in info.urls:
         try:
-            download_and_extract_archive(
+    
+            # Download the archive
+            archive_path = download_url(
                 url,
                 root,
-                download_info.filename,
-                extract_folder=download_info.extract_folder,
+                filename=info.filename,
                 force_download=force_download,
-                md5=download_info.md5,
-                sha256=download_info.sha256,
-                remove_finished=remove_finished,
+                md5=info.md5,
+                sha256=info.sha256
             )
+            
+            if verbose:
+                print(f"Downloaded {info.filename} from {url} to {archive_path}")
+            
             return  # Success
         except Exception as e:
             last_error = e
@@ -138,5 +102,5 @@ def download_and_extract_dataset(
             continue
     
     # If we get here, all downloads failed
-    raise RuntimeError(f"Failed to download {download_info.name} from all mirrors. "
+    raise RuntimeError(f"Failed to download {info.name} from all mirrors. "
                       f"Last error: {last_error}")

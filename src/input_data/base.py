@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
-from .downloaders import DownloadInfo, download_and_extract_dataset
+from .downloaders import DownloadInfo, download_dataset, check_integrity
 from .plots import plot_samples
 from .storage import StorageStrategy, MemoryStorage, DiskStorage, HybridStorage
 
@@ -112,6 +112,32 @@ class ManagedDataset(Dataset, ABC):
         # Load or prepare data using storage strategy
         if not self.storage.is_ready() or force_download:
             self._load_and_store_data()
+    
+    # --- Dataset properties ---
+
+    @property
+    @abstractmethod
+    def download_infos(self) -> List[DownloadInfo]:
+        """List of download links for the dataset."""
+        pass
+    
+    @property
+    @abstractmethod
+    def dataset_name(self) -> str:
+        """Name of the dataset (used for folder name)."""
+        pass
+    
+    @property
+    @abstractmethod
+    def dataset_info(self) -> DatasetInfo:
+        """Get the DatasetInfo for this dataset."""
+        pass
+    
+    def print_info(self) -> None:
+        """Print information about this dataset."""
+        info = self.dataset_info
+        print(info.print())
+        print(f"Total samples loaded: {len(self):,}")
 
     # --- Internal methods ---
 
@@ -150,46 +176,28 @@ class ManagedDataset(Dataset, ABC):
         """
         pass
     
-    @abstractmethod
-    def _extraction_valid(self) -> bool:
-        """Check if the extracted dataset is valid."""
-        pass
+    def _downloads_valid(self) -> bool:
+        """Check if the downloaded files are complete and valid."""
+        for info in self.download_infos:
+            file_path = self.dataset_root / info.filename
+
+            # Check the validity of the .gz files
+            if not check_integrity(file_path, info.md5, info.sha256):
+                print(f"File {info.filename} failed integrity check.")
+                return False
+
+        return True
     
     def _download(self, force_download: bool = False) -> None:
         """Download all dataset files (both train and test)."""
-        if self._extraction_valid() and not force_download:
+        if self._downloads_valid() and not force_download:
             print("="*5, f"Dataset '{self.dataset_name}' already exists and is valid.", "="*5)
             return
 
         print("="*5, f"Downloading dataset '{self.dataset_name}' to {self.dataset_root}...", "="*5)
         for info in self.download_infos:
-            download_and_extract_dataset(info, self.dataset_root, force_download=force_download)
+            download_dataset(info, self.dataset_root, force_download=force_download)
 
-    # --- Dataset properties ---
-
-    @property
-    @abstractmethod
-    def download_infos(self) -> List[DownloadInfo]:
-        """List of download links for the dataset."""
-        pass
-    
-    @property
-    @abstractmethod
-    def dataset_name(self) -> str:
-        """Name of the dataset (used for folder name)."""
-        pass
-    
-    @property
-    @abstractmethod
-    def dataset_info(self) -> DatasetInfo:
-        """Get the DatasetInfo for this dataset."""
-        pass
-    
-    def print_info(self) -> None:
-        """Print information about this dataset."""
-        info = self.dataset_info
-        print(info.print())
-        print(f"Total samples loaded: {len(self):,}")
     
     # --- Dataset interface methods ---
     
