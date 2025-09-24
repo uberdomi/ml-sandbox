@@ -21,10 +21,8 @@ Example usage:
 from typing import List, Optional, Union, Callable, Type, Literal
 
 # Import dataset classes from modular structure
-from .base import ManagedDataset
-from .mnist import MnistDataset
-from .fashion_mnist import FashionMnistDataset
-from .cifar10 import Cifar10Dataset
+from .structure import ManagedDataset
+from .implementations import MnistDataset, FashionMnistDataset, Cifar10Dataset
 
 __version__ = "0.1.0"
 

@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
-from .downloaders import DownloadInfo, download_dataset, check_integrity
+from ..downloaders import DownloadInfo, download_dataset, check_integrity
 from .plots import plot_samples
 from .storage import StorageStrategy, MemoryStorage, DiskStorage, HybridStorage
 

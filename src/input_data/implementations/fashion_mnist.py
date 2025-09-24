@@ -10,8 +10,8 @@ import gzip
 import numpy as np
 from typing import Tuple, override
 
-from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo
+from ..structure.base import ManagedDataset, DatasetInfo
+from ..downloaders import DownloadInfo
 
 
 # Fashion-MNIST-specific download information

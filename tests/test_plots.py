@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.input_data.plots import (
+from src.input_data.structure.plots import (
     plot_sample_grayscale,
     plot_sample_rgb,
     plot_sample,

@@ -10,8 +10,8 @@ import gzip
 import numpy as np
 from typing import List, Tuple, override
 
-from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo
+from ..structure import ManagedDataset, DatasetInfo
+from ..downloaders import DownloadInfo
 
 
 # MNIST-specific download information

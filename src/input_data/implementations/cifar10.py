@@ -9,8 +9,8 @@ import pickle
 import numpy as np
 from typing import Tuple, override
 
-from .base import ManagedDataset, DatasetInfo
-from .downloaders import DownloadInfo, extract_archive
+from ..structure.base import ManagedDataset, DatasetInfo
+from ..downloaders import DownloadInfo, extract_archive
 
 
 # CIFAR-10-specific download information
