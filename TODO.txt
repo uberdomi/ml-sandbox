@@ -1,18 +1,30 @@
-- Examine the i2dl scripts
-- Write own utilites
-- Write a sample autoencoder
-- Add some tests?
-- Adjust readme
-
 1) Dataloaders
-- implement Dataset classes deriving from the pytorch base class to manage the datasets from predefined links, to be used as model inputs
-- add file extracting utilities
-- add plotting utilities
-^ everything can be packed into one wrapper class
-- allow for custom transformations of the input data
-- allow to load into memory, if it suffices
+- [done] implement Dataset classes deriving from the pytorch base class to manage the datasets from predefined links, to be used as model inputs
+- [done] add file extracting utilities
+- [done] add plotting utilities
+- [done] allow for custom transformations of the input data
+- [done] allow to load into memory, if it suffices
+- adjust the testing functions to the new functionalities
+^ change the behavior in test_datasets
+^ disable plot output in test_plots
+- review the url links
 
 2) Trainers
 - add a trainer class that implements the training loop on pytorch objects: datasets, models and optimizers
-^ take in the objects at inti and manage them
+^ take in the objects at init and manage them
 ^ in the end can store the model and load it again
+- write some tests
+
+3) Sample autoencoder
+- implement a sample autoencoder on the mnist dataset
+- implement a variational autoencoder on mnist to generate new numbers
+- after the functionalities in `src` are defined, merge the branch to main!
+
+4) Next steps
+- create a Readme in src which summarizes the sample notebooks
+- adjust the project Readme
+- Dataset: improve on the traning procedure, better use file extraction and memory, consider numpy-tensor tradeoffs (how to use tensors most efficient for data loading)
+- Dataset: make input data more abstract beyond labeled images - to also support other data types, can derive more subclasses to handle the input accordingly
+- create Docker containers to run sample (train) notebooks?
+- model idea: autoencoder on png photos and create a visualizing tool that interpolates (on the latent space) between images of various people, for example Barrack Obama and Ryan Gosling
+
