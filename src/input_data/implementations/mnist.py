@@ -74,10 +74,12 @@ class MnistDataset(ManagedDataset):
     """
     MNIST dataset with automatic download and flexible storage.
     
-    Supports multiple storage strategies:
-    - memory: Load all data into RAM (fast access, high memory usage)
-    - disk: Store as PNG files (slower access, low memory usage)  
-    - hybrid: Automatic choice based on memory threshold
+    Loads ALL MNIST data (train + test) into a unified dataset.
+    Use get_dataloaders() to split into train/val/test sets.
+    
+    Returns:
+        sample: torch.Tensor of shape (1, 28, 28) with values in [0, 1]
+        target: int class label (0-9)
     """
     
     @override
