@@ -63,6 +63,10 @@ maildir
 .vscode/
 .idea/
 
+# Virtual environments
+venv/
+.venv/
+
 # Saved models
 *.pth
 *.p
