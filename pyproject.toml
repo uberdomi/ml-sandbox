@@ -28,6 +28,9 @@ dependencies = [
     "matplotlib>=3.8",
     "seaborn>=0.13",
     
+    # Progress bars and utilities
+    "tqdm>=4.66",
+    
     # Jupyter notebook support
     "ipykernel>=6.29",
     "ipython>=9.0",
@@ -74,10 +77,6 @@ requires = ["setuptools>=70.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # UV-specific configuration
-[tool.uv]
-# Default to PyPI for most packages
-default-index = "pypi"
-
 # Additional package indices
 [[tool.uv.index]]
 name = "pypi"
