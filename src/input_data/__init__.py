@@ -92,14 +92,14 @@ def create_dataset(
         ManagedDataset instance
         
     Examples:
-        # Small dataset - use memory storage
-        mnist = create_dataset(SupportedDatasets.MNIST, storage_strategy="memory")
-        
-        # Large dataset - use disk storage  
-        large_dataset = create_dataset(SupportedDatasets.CIFAR10, storage_strategy="disk")
-        
-        # Automatic choice based on size
-        dataset = create_dataset(SupportedDatasets.MNIST, storage_strategy="hybrid", memory_threshold_mb=100)
+        >>> # Small dataset - use memory storage
+        >>> mnist = create_dataset(SupportedDatasets.MNIST, storage_strategy="memory")
+
+        >>> # Large dataset - use disk storage
+        >>> large_dataset = create_dataset(SupportedDatasets.CIFAR10, storage_strategy="disk")
+
+        >>> # Automatic choice based on size
+        >>> dataset = create_dataset(SupportedDatasets.MNIST, storage_strategy="hybrid", memory_threshold_mb=100)
     """
     # Handle both enum and string inputs
     if not isinstance(dataset, (SupportedDatasets, str)):

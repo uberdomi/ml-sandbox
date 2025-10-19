@@ -238,13 +238,15 @@ class ManagedDataset(Dataset, ABC):
     
     # --- Data loading methods ---
 
-    def get_dataloaders(self, 
-                       train_split: float = 0.6,
-                       val_split: float = 0.2, 
-                       test_split: float = 0.2,
-                       batch_size: int = 32,
-                       shuffle: bool = True,
-                       num_workers: int = 0) -> Dict[str, DataLoader]:
+    def get_dataloaders(
+        self, 
+        train_split: float = 0.6,
+        val_split: float = 0.2, 
+        test_split: float = 0.2,
+        batch_size: int = 32,
+        shuffle: bool = True,
+        num_workers: int = 0
+    ) -> Dict[str, DataLoader]:
         """
         Create train/validation/test dataloaders from the unified dataset.
         
