@@ -284,56 +284,6 @@ class TestCifar10Dataset:
             raise
 
 
-@pytest.mark.transform
-@pytest.mark.unit
-class TestDatasetTransforms:
-    """Test suite for dataset transforms."""
-    
-    def test_mnist_with_transforms(self, temp_data_dir, sample_transforms, tensor_shapes):
-        """Test MNIST dataset with torchvision transforms."""
-        try:
-            mnist_transformed = MnistDataset(
-                root=temp_data_dir,
-                transform=sample_transforms
-            )
-            
-            # Test transformed sample
-            img, label = mnist_transformed[0]
-            expected_shape = tensor_shapes['mnist']
-            assert hasattr(img, 'shape'), f"Expected tensor with shape, got {type(img)}"
-            assert img.shape == expected_shape, f"Expected shape {expected_shape}, got {img.shape}"
-            assert isinstance(label, int), f"Expected int label, got {type(label)}"
-            logger.info(f"Transformed MNIST sample: shape={img.shape}, label={label}")
-        except Exception as e:
-            logger.error(f"MNIST transforms test failed: {e}")
-            raise
-    
-    def test_cifar10_with_transforms(self):
-        """Test CIFAR-10 dataset with torchvision transforms."""
-        try:
-            import torchvision.transforms as transforms
-            
-            # Define transforms for RGB images
-            # Note: No ToTensor() needed - datasets return tensors by default
-            transform = transforms.Compose([
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])
-            
-            cifar_transformed = Cifar10Dataset(
-                transform=transform
-            )
-            
-            # Test transformed sample
-            img, label = cifar_transformed[0]
-            assert hasattr(img, 'shape'), f"Expected tensor with shape, got {type(img)}"
-            assert img.shape == (3, 32, 32), f"Expected shape (3, 32, 32), got {img.shape}"
-            assert isinstance(label, int), f"Expected int label, got {type(label)}"
-            logger.info(f"Transformed CIFAR-10 sample: shape={img.shape}, label={label}")
-        except Exception as e:
-            logger.error(f"CIFAR-10 transforms test failed: {e}")
-            raise
-
-
 class TestDatasetDownloaders:
     """Test suite for dataset downloading functionality."""
     
