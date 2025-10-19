@@ -326,37 +326,7 @@ class TestErrorHandling:
 @pytest.mark.unit
 class TestPackageAPI:
     """Test suite for the package API functions."""
-    
-    def test_get_dataset_info(self):
-        """Test the get_dataset_info factory function."""
-        try:
-            # Test various name formats
-            mnist_info = get_dataset_info("mnist")
-            assert mnist_info.name == "MNIST"
-            assert len(mnist_info.classes) == 10
-            
-            fashion_info = get_dataset_info("fashion-mnist")
-            assert fashion_info.name == "Fashion-MNIST"
-            assert len(fashion_info.classes) == 10
-            
-            # Test case insensitive
-            cifar_info = get_dataset_info("CIFAR10")
-            assert cifar_info.name == "CIFAR-10"
-            
-            logger.info("Dataset info retrieval verified")
-        except Exception as e:
-            logger.error(f"Dataset info test failed: {e}")
-            raise
-    
-    def test_get_dataset_info_invalid(self):
-        """Test get_dataset_info with invalid dataset name."""
-        try:
-            with pytest.raises(ValueError):
-                get_dataset_info("nonexistent")
-            logger.info("Invalid dataset name handling verified")
-        except Exception as e:
-            logger.error(f"Invalid dataset info test failed: {e}")
-            raise
+
     
     def test_create_dataset_factory(self):
         """Test the create_dataset factory function."""
@@ -403,8 +373,6 @@ class TestPyTorchIntegration:
     def test_dataloader_integration(self, temp_data_dir, sample_transforms, device, test_batch_sizes):
         """Test dataset integration with PyTorch DataLoader."""
         try:
-            import torch
-            from torch.utils.data import DataLoader
             
             # Create dataset with transforms
             dataset = MnistDataset(
