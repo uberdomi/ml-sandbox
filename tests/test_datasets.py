@@ -356,7 +356,7 @@ class TestPackageAPI:
             assert len(cifar) == 60000  # 50k train + 10k test
             
             # Test enum usage
-            mnist_enum = create_dataset(SupportedDatasets.MNIST)
+            mnist_enum = create_dataset(SupportedDatasets.MNIST, root=temp_data_dir)
             assert isinstance(mnist_enum, MnistDataset)
             
             logger.info("Dataset factory function verified")
