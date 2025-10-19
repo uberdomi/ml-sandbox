@@ -108,15 +108,6 @@ def dataset_config() -> Dict[str, Any]:
         'target_transform': None,
     }
 
-@pytest.fixture
-def tensor_shapes() -> Dict[str, Tuple[int, int, int]]:
-    """Provide expected tensor shapes for different datasets."""
-    return {
-        'mnist': (1, 28, 28),
-        'fashion_mnist': (1, 28, 28),
-        'cifar10': (3, 32, 32),
-    }
-
 # ============================================================================
 # Utility fixtures
 # ============================================================================

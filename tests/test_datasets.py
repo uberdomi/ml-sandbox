@@ -67,6 +67,7 @@ def sample_access_assertions(
 class TestMnistDataset:
     """Test suite for MNIST dataset."""
     dataset_length = 70000  # 60k train + 10k test
+    input_shape = (1, 28, 28)
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -113,7 +114,7 @@ class TestMnistDataset:
             logger.error(f"MNIST dataloader creation failed: {e}")
             raise
     
-    def test_mnist_sample_access(self, temp_data_dir, tensor_shapes, small_sample_size):
+    def test_mnist_sample_access(self, temp_data_dir, small_sample_size):
         """Test MNIST sample access and data types."""
         try:
             mnist = MnistDataset(root=temp_data_dir)
@@ -124,7 +125,7 @@ class TestMnistDataset:
                 sample_access_assertions(
                     mnist,
                     i,
-                    expected_shape=tensor_shapes['mnist'],
+                    expected_shape=self.input_shape,
                     expected_label_range=range(10)
                 )
         except Exception as e:
@@ -152,6 +153,7 @@ class TestMnistDataset:
 class TestFashionMnistDataset:
     """Test suite for Fashion-MNIST dataset."""
     dataset_length = 70000  # 60k train + 10k test
+    input_shape = (1, 28, 28)
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -193,7 +195,7 @@ class TestFashionMnistDataset:
             logger.error(f"Fashion-MNIST dataloader creation failed: {e}")
             raise
     
-    def test_fashion_mnist_sample_access(self, temp_data_dir, tensor_shapes, small_sample_size):
+    def test_fashion_mnist_sample_access(self, temp_data_dir, small_sample_size):
         """Test Fashion-MNIST sample access and data types."""
         try:
             fashion = FashionMnistDataset(root=temp_data_dir)
@@ -204,7 +206,7 @@ class TestFashionMnistDataset:
                 sample_access_assertions(
                     fashion,
                     i,
-                    expected_shape=tensor_shapes['fashion'],
+                    expected_shape=self.input_shape,
                     expected_label_range=range(10),
                     class_names=fashion.dataset_info.classes
                 )
@@ -218,6 +220,7 @@ class TestFashionMnistDataset:
 class TestCifar10Dataset:
     """Test suite for CIFAR-10 dataset."""
     dataset_length = 60000  # 50k train + 10k test
+    input_shape = (3, 32, 32)
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -261,7 +264,7 @@ class TestCifar10Dataset:
             logger.error(f"CIFAR-10 dataloader creation failed: {e}")
             raise
     
-    def test_cifar10_sample_access(self, temp_data_dir, tensor_shapes, small_sample_size):
+    def test_cifar10_sample_access(self, temp_data_dir, small_sample_size):
         """Test CIFAR-10 class names and sample access."""
         try:
             cifar = Cifar10Dataset(root=temp_data_dir)
@@ -272,7 +275,7 @@ class TestCifar10Dataset:
                 sample_access_assertions(
                     cifar,
                     i,
-                    expected_shape=tensor_shapes['cifar'],
+                    expected_shape=self.input_shape,
                     expected_label_range=range(10),
                     class_names=cifar.dataset_info.classes
                 )
