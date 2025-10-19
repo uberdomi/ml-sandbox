@@ -346,12 +346,12 @@ class TestPackageAPI:
             assert isinstance(mnist, MnistDataset)
             assert len(mnist) == 70000  # 60k train + 10k test
             
-            fashion = create_dataset("fashion-mnist", root=temp_data_dir)
+            fashion = create_dataset("fashion_mnist", root=temp_data_dir)
             assert isinstance(fashion, FashionMnistDataset) 
             assert len(fashion) == 70000  # 60k train + 10k test
             
             # Test alternative naming
-            cifar = create_dataset("cifar-10", root=temp_data_dir)
+            cifar = create_dataset("cifar_10", root=temp_data_dir)
             assert isinstance(cifar, Cifar10Dataset)
             assert len(cifar) == 60000  # 50k train + 10k test
             
