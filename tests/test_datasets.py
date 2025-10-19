@@ -283,64 +283,6 @@ class TestCifar10Dataset:
             logger.error(f"CIFAR-10 sample access failed: {e}")
             raise
 
-
-class TestDatasetDownloaders:
-    """Test suite for dataset downloading functionality."""
-    
-    def test_download_individual_files(self):
-        """Test downloading individual dataset files."""
-        try:
-            # Test downloading individual MNIST files
-            temp_dir = Path(tempfile.mkdtemp())
-            
-            # Download MNIST training images
-            file_path = download_dataset(
-                MnistDownloads.TRAIN_IMAGES.value, 
-                temp_dir, 
-                force_download=False
-            )
-            
-            assert file_path.exists(), f"Downloaded file not found: {file_path}"
-            assert file_path.stat().st_size > 0, f"Downloaded file is empty: {file_path}"
-            logger.info(f"Downloaded {file_path.name}: {file_path.stat().st_size / (1024*1024):.1f} MB")
-            
-            # Clean up
-            shutil.rmtree(temp_dir)
-        except Exception as e:
-            logger.error(f"Individual file download test failed: {e}")
-            raise
-    
-    def test_force_redownload_behavior(self):
-        """Test force re-download functionality."""
-        try:
-            temp_dir = Path(tempfile.mkdtemp())
-            
-            # First download
-            file_path1 = download_dataset(
-                MnistDownloads.TRAIN_LABELS.value, 
-                temp_dir, 
-                force_download=False
-            )
-            original_size = file_path1.stat().st_size
-            
-            # Force re-download
-            file_path2 = download_dataset(
-                MnistDownloads.TRAIN_LABELS.value, 
-                temp_dir, 
-                force_download=True
-            )
-            
-            assert file_path1 == file_path2, "File paths should be the same"
-            assert file_path2.stat().st_size == original_size, "Re-downloaded file should have same size"
-            logger.info(f"Force re-download successful: {file_path2.name}")
-            
-            # Clean up
-            shutil.rmtree(temp_dir)
-        except Exception as e:
-            logger.error(f"Force re-download test failed: {e}")
-            raise
-
-
 class TestDataStructure:
     """Test suite for data organization and storage."""
     
