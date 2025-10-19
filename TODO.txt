@@ -13,7 +13,10 @@
 - add a trainer class that implements the training loop on pytorch objects: datasets, models and optimizers
 ^ take in the objects at init and manage them
 ^ in the end can store the model and load it again
-- write some tests
+- divide up the big trainer class: e.g. split regularization and early stopping, move helper functions to further files.
+- write some tests testing the functionalities
+^ use objects from conftest
+- add helper classes/functions to store/load trained models
 
 3) Sample autoencoder
 - implement a sample autoencoder on the mnist dataset
