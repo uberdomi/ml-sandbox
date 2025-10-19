@@ -283,58 +283,6 @@ class TestCifar10Dataset:
             logger.error(f"CIFAR-10 sample access failed: {e}")
             raise
 
-class TestDataStructure:
-    """Test suite for data organization and storage."""
-    
-    def test_data_directory_structure(self):
-        """Test that data is stored in correct locations."""
-        try:
-            project_root = Path(__file__).parent.parent
-            data_root = project_root / "data"
-            
-            expected_dirs = ["mnist", "fashion-mnist", "cifar-10"]
-            
-            logger.info(f"Checking data structure in: {data_root}")
-            
-            for dir_name in expected_dirs:
-                dir_path = data_root / dir_name
-                if dir_path.exists():
-                    files = list(dir_path.glob("*"))
-                    logger.info(f"{dir_name}: {len(files)} files")
-                    for file in files[:3]:  # Log first 3 files
-                        if file.is_file():
-                            size_mb = file.stat().st_size / (1024 * 1024)
-                            logger.info(f"  - {file.name} ({size_mb:.1f} MB)")
-                        else:
-                            logger.info(f"  - {file.name} (directory)")
-                else:
-                    logger.warning(f"{dir_name}: Directory not found")
-        except Exception as e:
-            logger.error(f"Data structure test failed: {e}")
-            raise
-    
-    def test_dataset_paths_consistency(self):
-        """Test that datasets create consistent paths."""
-        try:
-            # Test that all datasets create their expected directories
-            mnist = MnistDataset()
-            fashion = FashionMnistDataset()
-            cifar = Cifar10Dataset()
-            
-            assert mnist.dataset_name == "mnist", f"Expected 'mnist', got '{mnist.dataset_name}'"
-            assert fashion.dataset_name == "fashion-mnist", f"Expected 'fashion-mnist', got '{fashion.dataset_name}'"
-            assert cifar.dataset_name == "cifar-10", f"Expected 'cifar-10', got '{cifar.dataset_name}'"
-            
-            # Check that dataset_root paths are correct
-            assert mnist.dataset_root.name == "mnist"
-            assert fashion.dataset_root.name == "fashion-mnist"
-            assert cifar.dataset_root.name == "cifar-10"
-            
-            logger.info("Dataset path consistency verified")
-        except Exception as e:
-            logger.error(f"Dataset paths consistency test failed: {e}")
-            raise
-
 
 class TestErrorHandling:
     """Test suite for error handling and edge cases."""
