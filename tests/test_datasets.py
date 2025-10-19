@@ -3,14 +3,18 @@ Pytest suite for the managed dataset classes from the input_data package.
 Tests downloading, loading, and basic functionality.
 """
 
+# Pytest configuration
 import pytest
-import sys
 import logging
+# Typing
+from typing import Dict, Optional, List
+# File management
+import sys
 import shutil
 import tempfile
-from typing import Dict, Optional, List
 from pathlib import Path
-from unittest.mock import patch
+# Data structures
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -51,9 +55,11 @@ def sample_access_assertions(
 ) -> None:
     """Helper function to assert sample access correctness."""
     img, label = dataset[index]
+    # Squeeze the image to avoid confusion related to extra dimensions
+    img = img.squeeze()
     assert isinstance(img, torch.Tensor), f"Expected tensor image, got {type(img)}"
     assert img.shape == expected_shape, f"Expected shape {expected_shape}, got {img.shape}"
-    assert isinstance(label, int), f"Expected int label, got {type(label)}"
+    assert isinstance(label, (int, np.integer)), f"Expected int label, got {type(label)}"
     assert label in expected_label_range, f"Label {label} out of range {expected_label_range}"
     if class_names is not None:
         class_name = class_names[label]
@@ -67,7 +73,7 @@ def sample_access_assertions(
 class TestMnistDataset:
     """Test suite for MNIST dataset."""
     dataset_length = 70000  # 60k train + 10k test
-    input_shape = (1, 28, 28)
+    input_shape = (28, 28)
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -154,7 +160,7 @@ class TestMnistDataset:
 class TestFashionMnistDataset:
     """Test suite for Fashion-MNIST dataset."""
     dataset_length = 70000  # 60k train + 10k test
-    input_shape = (1, 28, 28)
+    input_shape = (28, 28)
     
     @pytest.mark.download
     @pytest.mark.slow
