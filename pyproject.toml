@@ -40,31 +40,33 @@ dependencies = [
     # Testing
     "pytest>=8.0",
     "pytest-cov>=4.1",
-    
-    # PyTorch (CPU version by default, CUDA via optional dependencies)
-    # Note: These will use the pytorch-cu126 index defined in [tool.uv.sources]
+]
+
+[project.optional-dependencies]
+# PyTorch CPU version (default, no CUDA support)
+# Install with: uv sync --extra cpu
+cpu = [
     "torch>=2.0",
     "torchvision>=0.15",
 ]
 
-[project.optional-dependencies]
-# CUDA support - NVIDIA dependencies are automatically installed with torch+cu126
-# but can be explicitly listed for transparency
-cuda = [
-    # Note: When installing torch with CUDA from pytorch index,
-    # NVIDIA dependencies are bundled. This group serves as documentation
-    # and for explicit version pinning if needed.
+# PyTorch with CUDA 12.6 support (for NVIDIA GPUs)
+# Install with: uv sync --extra cu126
+# NVIDIA CUDA libraries (cublas, cudnn, cusparse, etc.) are automatically bundled
+cu126 = [
+    "torch>=2.0",
+    "torchvision>=0.15",
 ]
 
 # Development dependencies
+# Install with: uv sync --extra dev
 dev = [
-    "pytest>=8.0",
-    "pytest-cov>=4.1",
     "black>=24.0",
     "ruff>=0.1.0",
 ]
 
 # Full Jupyter Lab environment
+# Install with: uv sync --extra jupyter
 jupyter = [
     "jupyterlab>=4.0",
     "notebook>=7.0",
@@ -76,24 +78,64 @@ jupyter = [
 requires = ["setuptools>=70.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# UV-specific configuration
-# Additional package indices
+# ============================================================================
+# UV Configuration
+# ============================================================================
+
+# Conflict resolution: prevent installing both CPU and CUDA PyTorch versions
+[tool.uv]
+conflicts = [
+    [
+        { extra = "cpu" },
+        { extra = "cu126" },
+    ],
+]
+
+# ============================================================================
+# PyTorch Installation Configuration
+# ============================================================================
+# 
+# PyTorch is NOT installed by default. Choose one of the following:
+#
+# 1. CPU-only PyTorch (for systems without NVIDIA GPU or for development):
+#    uv sync --extra cpu
+#
+# 2. CUDA 12.6 PyTorch (for NVIDIA GPU support):
+#    uv sync --extra cu126
+#    NVIDIA CUDA libraries are automatically bundled with this version.
+#
+# 3. Install with all features (CUDA + Jupyter + Dev tools):
+#    uv sync --extra cu126 --extra jupyter --extra dev
+#
+# Note: You cannot install both cpu and cu126 extras simultaneously.
+# ============================================================================
+
+# PyTorch package indices
 [[tool.uv.index]]
 name = "pypi"
 url = "https://pypi.org/simple"
 
-# PyTorch with CUDA 12.6 support
-# Use this index for PyTorch packages to get CUDA-enabled versions
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [[tool.uv.index]]
 name = "pytorch-cu126"
 url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 # Source configuration for PyTorch packages
-# This ensures torch and torchvision are installed from the CUDA-enabled index
+# Routes torch/torchvision to appropriate index based on selected extra
 [tool.uv.sources]
-torch = { index = "pytorch-cu126" }
-torchvision = { index = "pytorch-cu126" }
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu126", extra = "cu126" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu126", extra = "cu126" },
+]
 
 [project.urls]
 Homepage = "https://https://github.com/paulhoheisel/ml-sandbox"
