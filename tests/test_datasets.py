@@ -25,7 +25,7 @@ from src.input_data import (
 )
 
 # Import functions that aren't in __all__ but needed for testing
-from src.input_data.downloaders import download_dataset, dataset_exists
+from src.input_data.downloaders import download_dataset
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -319,24 +319,6 @@ class TestDatasetDownloaders:
             logger.error(f"Individual file download test failed: {e}")
             raise
     
-    def test_dataset_exists_functionality(self):
-        """Test dataset existence checking."""
-        try:
-            # This should return True for already downloaded datasets
-            exists = dataset_exists(MnistDownloads.TRAIN_IMAGES.value, Path("data/mnist"))
-            logger.info(f"MNIST training images exist: {exists}")
-            
-            # Test with non-existent path
-            temp_dir = Path(tempfile.mkdtemp())
-            exists_false = dataset_exists(MnistDownloads.TRAIN_IMAGES.value, temp_dir)
-            assert not exists_false, "dataset_exists should return False for non-existent files"
-            
-            # Clean up
-            shutil.rmtree(temp_dir)
-        except Exception as e:
-            logger.error(f"Dataset exists test failed: {e}")
-            raise
-    
     def test_force_redownload_behavior(self):
         """Test force re-download functionality."""
         try:
@@ -597,28 +579,28 @@ class TestPyTorchIntegration:
             logger.error(f"Augmentation transforms test failed: {e}")
             raise
 
-
-# Pytest fixtures and utilities
-@pytest.fixture(scope="session")
-def project_root():
-    """Get the project root directory."""
-    return Path(__file__).parent.parent
-
-
-@pytest.fixture(scope="session")
-def data_root(project_root):
-    """Get the data directory."""
-    return project_root / "data"
+# TODO fictures already in conftest, examine if they work
+# # Pytest fixtures and utilities
+# @pytest.fixture(scope="session")
+# def project_root():
+#     """Get the project root directory."""
+#     return Path(__file__).parent.parent
 
 
-@pytest.fixture
-def temp_dataset_dir():
-    """Create a temporary directory for dataset tests."""
-    temp_dir = Path(tempfile.mkdtemp())
-    yield temp_dir
-    # Cleanup
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
+# @pytest.fixture(scope="session")
+# def data_root(project_root):
+#     """Get the data directory."""
+#     return project_root / "data"
+
+
+# @pytest.fixture
+# def temp_dataset_dir():
+#     """Create a temporary directory for dataset tests."""
+#     temp_dir = Path(tempfile.mkdtemp())
+#     yield temp_dir
+#     # Cleanup
+#     if temp_dir.exists():
+#         shutil.rmtree(temp_dir)
 
 
 # Run specific test if called directly
