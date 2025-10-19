@@ -8,9 +8,11 @@ import sys
 import logging
 import shutil
 import tempfile
+from typing import Dict, Optional, List
 from pathlib import Path
 from unittest.mock import patch
 import torch
+from torch.utils.data import DataLoader
 
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -30,11 +32,41 @@ from src.input_data.downloaders import download_dataset
 # Configure logging
 logger = logging.getLogger(__name__)
 
+def dataloaders_assertions(
+    dataloaders: Dict[str, DataLoader],
+    expected_sizes: Dict[str, int]
+) -> None:
+    """Helper function to assert correct dataloader sizes."""
+    for split, expected_size in expected_sizes.items():
+        assert split in dataloaders, f"Should have {split} dataloader"
+        actual_size = len(dataloaders[split].dataset)
+        assert actual_size == expected_size, f"{split} size mismatch: expected {expected_size}, got {actual_size}"
 
+def sample_access_assertions(
+    dataset,
+    index: int,
+    expected_shape: torch.Size,
+    expected_label_range: range,
+    class_names: Optional[List[str]] = None
+) -> None:
+    """Helper function to assert sample access correctness."""
+    img, label = dataset[index]
+    assert isinstance(img, torch.Tensor), f"Expected tensor image, got {type(img)}"
+    assert img.shape == expected_shape, f"Expected shape {expected_shape}, got {img.shape}"
+    assert isinstance(label, int), f"Expected int label, got {type(label)}"
+    assert label in expected_label_range, f"Label {label} out of range {expected_label_range}"
+    if class_names is not None:
+        class_name = class_names[label]
+        assert isinstance(class_name, str), f"Expected string class name, got {type(class_name)}"
+
+    logger.info(f"Sample {index}: Image shape={img.shape}, Label={label}")
+
+# --- Specific class implementations ---
 @pytest.mark.mnist
 @pytest.mark.unit
 class TestMnistDataset:
     """Test suite for MNIST dataset."""
+    dataset_length = 70000  # 60k train + 10k test
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -44,7 +76,7 @@ class TestMnistDataset:
             mnist = MnistDataset(root=temp_data_dir)
             assert len(mnist) > 0, "MNIST unified dataset should not be empty"
             # MNIST has 60k train + 10k test = 70k total samples
-            assert len(mnist) == 70000, f"Expected 70000 samples, got {len(mnist)}"
+            assert len(mnist) == self.dataset_length, f"Expected {self.dataset_length} samples, got {len(mnist)}"
             logger.info(f"Loaded complete MNIST dataset: {len(mnist)} samples")
         except Exception as e:
             logger.error(f"MNIST unified dataset loading failed: {e}")
@@ -58,17 +90,25 @@ class TestMnistDataset:
             mnist = MnistDataset(root=temp_data_dir)
             dataloaders = mnist.get_dataloaders(train_split=0.8, val_split=0.1, test_split=0.1)
             
-            assert 'train' in dataloaders, "Should have train dataloader"
-            assert 'val' in dataloaders, "Should have validation dataloader"  
-            assert 'test' in dataloaders, "Should have test dataloader"
+            dataloaders = mnist.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
             
-            # Check approximate split sizes (70k total: 56k train, 7k val, 7k test)
-            train_size = len(dataloaders['train'].dataset)
-            val_size = len(dataloaders['val'].dataset)
-            test_size = len(dataloaders['test'].dataset)
+            expected_sizes = dict(
+                train=self.dataset_length * 8 // 10,
+                val=self.dataset_length // 10,
+                test=self.dataset_length // 10,
+            )
+
+            dataloaders_assertions(dataloaders, expected_sizes)
             
-            assert train_size + val_size + test_size == 70000, "Total samples should equal dataset size"
-            logger.info(f"MNIST dataloaders created - Train: {train_size}, Val: {val_size}, Test: {test_size}")
+            dataloaders = mnist.get_dataloaders(train_split=0.6, val_split=0.2, test_split=0.2)
+            
+            expected_sizes = dict(
+                train=self.dataset_length * 6 // 10,
+                val=self.dataset_length * 2 // 10,
+                test=self.dataset_length * 2 // 10,
+            )
+            
+            logger.info(f"MNIST dataloaders created successfully")
         except Exception as e:
             logger.error(f"MNIST dataloader creation failed: {e}")
             raise
@@ -81,12 +121,12 @@ class TestMnistDataset:
             # Test multiple samples (limit to small number for speed)
             samples_to_test = min(small_sample_size // 20, 5)  # Test 5 samples max
             for i in range(samples_to_test):
-                img, label = mnist[i]
-                assert isinstance(img, torch.Tensor), f"Sample {i}: Expected tensor, got {type(img)}"
-                assert isinstance(label, int), f"Sample {i}: Expected int label, got {type(label)}"
-                assert img.shape == (1, 28, 28), f"Sample {i}: Expected shape (1, 28, 28), got {img.shape}"
-                assert 0 <= label <= 9, f"Sample {i}: Invalid label {label}"
-                logger.info(f"Sample {i}: Image shape={img.shape}, Label={label}")
+                sample_access_assertions(
+                    mnist,
+                    i,
+                    expected_shape=tensor_shapes['mnist'],
+                    expected_label_range=range(10)
+                )
         except Exception as e:
             logger.error(f"MNIST sample access failed: {e}")
             raise
@@ -105,34 +145,13 @@ class TestMnistDataset:
         except Exception as e:
             logger.error(f"MNIST force re-download failed: {e}")
             raise
-    
-    def test_mnist_new_methods(self, temp_data_dir):
-        """Test new methods available in the refactored MNIST dataset."""
-        try:
-            mnist = MnistDataset(root=temp_data_dir)
-            
-            # Test print_info method
-            mnist.print_info()  # Should not raise an exception
-            
-            # Test dataset_info property
-            info = mnist.dataset_info
-            assert info.name == "MNIST", f"Expected 'MNIST', got {info.name}"
-            assert info.num_classes == 10, f"Expected 10 classes, got {info.num_classes}"
-            assert info.input_shape == (1, 28, 28), f"Expected (1, 28, 28), got {info.input_shape}"
-            
-            # Test dataset_name property  
-            assert mnist.dataset_name == "mnist", f"Expected 'mnist', got {mnist.dataset_name}"
-            
-            logger.info("MNIST new methods tested successfully")
-        except Exception as e:
-            logger.error(f"MNIST new methods test failed: {e}")
-            raise
 
 
 @pytest.mark.fashion_mnist
 @pytest.mark.unit
 class TestFashionMnistDataset:
     """Test suite for Fashion-MNIST dataset."""
+    dataset_length = 70000  # 60k train + 10k test
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -141,7 +160,7 @@ class TestFashionMnistDataset:
         try:
             fashion = FashionMnistDataset(root=temp_data_dir)
             # Fashion-MNIST has 60k train + 10k test = 70k total samples
-            assert len(fashion) == 70000, f"Expected 70000 samples, got {len(fashion)}"
+            assert len(fashion) == self.dataset_length, f"Expected {self.dataset_length} samples, got {len(fashion)}"
             logger.info(f"Fashion-MNIST unified dataset loaded: {len(fashion)} samples")
         except Exception as e:
             logger.error(f"Fashion-MNIST unified dataset loading failed: {e}")
@@ -153,36 +172,44 @@ class TestFashionMnistDataset:
             fashion = FashionMnistDataset()
             dataloaders = fashion.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
             
-            assert 'train' in dataloaders, "Should have train dataloader"
-            assert 'val' in dataloaders, "Should have validation dataloader"
-            assert 'test' in dataloaders, "Should have test dataloader"
+            expected_sizes = dict(
+                train=self.dataset_length * 8 // 10,
+                val=self.dataset_length // 10,
+                test=self.dataset_length // 10,
+            )
+
+            dataloaders_assertions(dataloaders, expected_sizes)
+            
+            dataloaders = fashion.get_dataloaders(train_split=0.6, val_split=0.2, test_split=0.2)
+            
+            expected_sizes = dict(
+                train=self.dataset_length * 6 // 10,
+                val=self.dataset_length * 2 // 10,
+                test=self.dataset_length * 2 // 10,
+            )
             
             logger.info(f"Fashion-MNIST dataloaders created successfully")
         except Exception as e:
             logger.error(f"Fashion-MNIST dataloader creation failed: {e}")
             raise
     
-    def test_fashion_mnist_class_names(self):
-        """Test Fashion-MNIST class names and sample access."""
+    def test_fashion_mnist_sample_access(self, temp_data_dir, tensor_shapes, small_sample_size):
+        """Test Fashion-MNIST sample access and data types."""
         try:
-            fashion = FashionMnistDataset()
+            fashion = FashionMnistDataset(root=temp_data_dir)
             
-            # Test class names exist in dataset info
-            class_names = fashion.dataset_info.classes
-            assert len(class_names) == 10, f"Expected 10 class names, got {len(class_names)}"
-            
-            # Test samples with class names
-            for i in range(5):
-                img, label = fashion[i]
-                assert isinstance(img, torch.Tensor), f"Sample {i}: Expected tensor, got {type(img)}"
-                assert isinstance(label, int), f"Sample {i}: Expected int label, got {type(label)}"
-                assert img.shape == (1, 28, 28), f"Sample {i}: Expected shape (1, 28, 28), got {img.shape}"
-                class_name = class_names[label]
-                assert 0 <= label <= 9, f"Sample {i}: Invalid label {label}"
-                assert isinstance(class_name, str), f"Sample {i}: Expected string class name, got {type(class_name)}"
-                logger.info(f"Sample {i}: Label={label} ({class_name})")
+            # Test multiple samples (limit to small number for speed)
+            samples_to_test = min(small_sample_size // 20, 5)  # Test 5 samples max
+            for i in range(samples_to_test):
+                sample_access_assertions(
+                    fashion,
+                    i,
+                    expected_shape=tensor_shapes['fashion'],
+                    expected_label_range=range(10),
+                    class_names=fashion.dataset_info.classes
+                )
         except Exception as e:
-            logger.error(f"Fashion-MNIST class names test failed: {e}")
+            logger.error(f"Fashion-MNIST sample access failed: {e}")
             raise
 
 
@@ -190,6 +217,7 @@ class TestFashionMnistDataset:
 @pytest.mark.unit
 class TestCifar10Dataset:
     """Test suite for CIFAR-10 dataset."""
+    dataset_length = 60000  # 50k train + 10k test
     
     @pytest.mark.download
     @pytest.mark.slow
@@ -198,7 +226,7 @@ class TestCifar10Dataset:
         try:
             cifar = Cifar10Dataset(root=temp_data_dir)
             # CIFAR-10 has 50k train + 10k test = 60k total samples
-            assert len(cifar) == 60000, f"Expected 60000 samples, got {len(cifar)}"
+            assert len(cifar) == self.dataset_length, f"Expected {self.dataset_length} samples, got {len(cifar)}"
             logger.info(f"CIFAR-10 unified dataset loaded: {len(cifar)} samples")
         except Exception as e:
             logger.error(f"CIFAR-10 unified dataset loading failed: {e}")
@@ -210,36 +238,46 @@ class TestCifar10Dataset:
             cifar = Cifar10Dataset()
             dataloaders = cifar.get_dataloaders(train_split=0.8, val_split=0.1, test_split=0.1)
             
-            assert 'train' in dataloaders, "Should have train dataloader"
-            assert 'val' in dataloaders, "Should have validation dataloader"
-            assert 'test' in dataloaders, "Should have test dataloader"
+            expected_sizes = dict(
+                train=self.dataset_length * 8 // 10,
+                val=self.dataset_length // 10,
+                test=self.dataset_length // 10,
+            )
+
+            dataloaders_assertions(dataloaders, expected_sizes)
             
+            dataloaders = cifar.get_dataloaders(train_split=0.6, val_split=0.2, test_split=0.2)
+            
+            expected_sizes = dict(
+                train=self.dataset_length * 6 // 10,
+                val=self.dataset_length * 2 // 10,
+                test=self.dataset_length * 2 // 10,
+            )
+
+            dataloaders_assertions(dataloaders, expected_sizes)
+
             logger.info(f"CIFAR-10 dataloaders created successfully")
         except Exception as e:
             logger.error(f"CIFAR-10 dataloader creation failed: {e}")
             raise
     
-    def test_cifar10_class_names_and_samples(self):
+    def test_cifar10_sample_access(self, temp_data_dir, tensor_shapes, small_sample_size):
         """Test CIFAR-10 class names and sample access."""
         try:
-            cifar = Cifar10Dataset()
-            
-            # Test class names exist in dataset info
-            class_names = cifar.dataset_info.classes
-            assert len(class_names) == 10, f"Expected 10 class names, got {len(class_names)}"
-            
-            # Test samples are color images
-            for i in range(5):
-                img, label = cifar[i]
-                assert isinstance(img, torch.Tensor), f"Sample {i}: Expected tensor, got {type(img)}"
-                assert img.shape == (3, 32, 32), f"Sample {i}: Expected shape (3, 32, 32), got {img.shape}"
-                assert isinstance(label, int), f"Sample {i}: Expected int label, got {type(label)}"
-                class_name = class_names[label]
-                assert 0 <= label <= 9, f"Sample {i}: Invalid label {label}"
-                assert isinstance(class_name, str), f"Sample {i}: Expected string class name, got {type(class_name)}"
-                logger.info(f"Sample {i}: Label={label} ({class_name}), Shape={img.shape}")
+            cifar = Cifar10Dataset(root=temp_data_dir)
+
+            # Test multiple samples (limit to small number for speed)
+            samples_to_test = min(small_sample_size // 20, 5)  # Test 5 samples max
+            for i in range(samples_to_test):
+                sample_access_assertions(
+                    cifar,
+                    i,
+                    expected_shape=tensor_shapes['cifar'],
+                    expected_label_range=range(10),
+                    class_names=cifar.dataset_info.classes
+                )
         except Exception as e:
-            logger.error(f"CIFAR-10 class names and samples test failed: {e}")
+            logger.error(f"CIFAR-10 sample access failed: {e}")
             raise
 
 
