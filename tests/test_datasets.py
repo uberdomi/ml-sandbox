@@ -91,8 +91,6 @@ class TestMnistDataset:
             mnist = MnistDataset(root=temp_data_dir)
             dataloaders = mnist.get_dataloaders(train_split=0.8, val_split=0.1, test_split=0.1)
             
-            dataloaders = mnist.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
-            
             expected_sizes = dict(
                 train=self.dataset_length * 8 // 10,
                 val=self.dataset_length // 10,
@@ -101,13 +99,16 @@ class TestMnistDataset:
 
             dataloaders_assertions(dataloaders, expected_sizes)
             
-            dataloaders = mnist.get_dataloaders(train_split=0.6, val_split=0.2, test_split=0.2)
+            dataloaders = mnist.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
             
             expected_sizes = dict(
-                train=self.dataset_length * 6 // 10,
+                train=self.dataset_length * 7 // 10,
                 val=self.dataset_length * 2 // 10,
-                test=self.dataset_length * 2 // 10,
+                test=self.dataset_length * 1 // 10,
             )
+            
+            dataloaders_assertions(dataloaders, expected_sizes)
+            
             
             logger.info(f"MNIST dataloaders created successfully")
         except Exception as e:
@@ -132,15 +133,15 @@ class TestMnistDataset:
             logger.error(f"MNIST sample access failed: {e}")
             raise
     
-    def test_mnist_force_redownload(self):
+    def test_mnist_force_redownload(self, temp_data_dir):
         """Test MNIST force re-download functionality."""
         try:
             # First ensure we have the dataset
-            mnist = MnistDataset(force_download=False)
+            mnist = MnistDataset(root=temp_data_dir, force_download=False)
             initial_len = len(mnist)
             
             # Force re-download
-            mnist_redownload = MnistDataset(force_download=True)
+            mnist_redownload = MnistDataset(root=temp_data_dir, force_download=True)
             assert len(mnist_redownload) == initial_len, "Re-downloaded dataset has different size"
             logger.info("MNIST force re-download successful")
         except Exception as e:
@@ -168,11 +169,11 @@ class TestFashionMnistDataset:
             logger.error(f"Fashion-MNIST unified dataset loading failed: {e}")
             raise
     
-    def test_fashion_mnist_dataloaders(self):
+    def test_fashion_mnist_dataloaders(self, temp_data_dir):
         """Test Fashion-MNIST dataloader creation."""
         try:
-            fashion = FashionMnistDataset()
-            dataloaders = fashion.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
+            fashion = FashionMnistDataset(root=temp_data_dir)
+            dataloaders = fashion.get_dataloaders(train_split=0.8, val_split=0.1, test_split=0.1)
             
             expected_sizes = dict(
                 train=self.dataset_length * 8 // 10,
@@ -182,13 +183,16 @@ class TestFashionMnistDataset:
 
             dataloaders_assertions(dataloaders, expected_sizes)
             
-            dataloaders = fashion.get_dataloaders(train_split=0.6, val_split=0.2, test_split=0.2)
+            dataloaders = fashion.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
             
             expected_sizes = dict(
-                train=self.dataset_length * 6 // 10,
+                train=self.dataset_length * 7 // 10,
                 val=self.dataset_length * 2 // 10,
-                test=self.dataset_length * 2 // 10,
+                test=self.dataset_length * 1 // 10,
             )
+            
+            dataloaders_assertions(dataloaders, expected_sizes)
+            
             
             logger.info(f"Fashion-MNIST dataloaders created successfully")
         except Exception as e:
@@ -235,10 +239,10 @@ class TestCifar10Dataset:
             logger.error(f"CIFAR-10 unified dataset loading failed: {e}")
             raise
     
-    def test_cifar10_dataloaders(self):
+    def test_cifar10_dataloaders(self, temp_data_dir):
         """Test CIFAR-10 dataloader creation."""
         try:
-            cifar = Cifar10Dataset()
+            cifar = Cifar10Dataset(root=temp_data_dir)
             dataloaders = cifar.get_dataloaders(train_split=0.8, val_split=0.1, test_split=0.1)
             
             expected_sizes = dict(
@@ -249,12 +253,12 @@ class TestCifar10Dataset:
 
             dataloaders_assertions(dataloaders, expected_sizes)
             
-            dataloaders = cifar.get_dataloaders(train_split=0.6, val_split=0.2, test_split=0.2)
+            dataloaders = cifar.get_dataloaders(train_split=0.7, val_split=0.2, test_split=0.1)
             
             expected_sizes = dict(
-                train=self.dataset_length * 6 // 10,
+                train=self.dataset_length * 7 // 10,
                 val=self.dataset_length * 2 // 10,
-                test=self.dataset_length * 2 // 10,
+                test=self.dataset_length * 1 // 10,
             )
 
             dataloaders_assertions(dataloaders, expected_sizes)
@@ -287,10 +291,10 @@ class TestCifar10Dataset:
 class TestErrorHandling:
     """Test suite for error handling and edge cases."""
     
-    def test_invalid_sample_index(self):
+    def test_invalid_sample_index(self, temp_data_dir):
         """Test handling of invalid sample indices."""
         try:
-            mnist = MnistDataset()
+            mnist = MnistDataset(root=temp_data_dir)
             
             # Test index too large
             with pytest.raises(IndexError):
@@ -328,20 +332,20 @@ class TestPackageAPI:
     """Test suite for the package API functions."""
 
     
-    def test_create_dataset_factory(self):
+    def test_create_dataset_factory(self, temp_data_dir):
         """Test the create_dataset factory function."""
         try:
             # Test creating different datasets (new API - no train parameter)
-            mnist = create_dataset("mnist")
+            mnist = create_dataset("mnist", root=temp_data_dir)
             assert isinstance(mnist, MnistDataset)
             assert len(mnist) == 70000  # 60k train + 10k test
             
-            fashion = create_dataset("fashion-mnist")
+            fashion = create_dataset("fashion-mnist", root=temp_data_dir)
             assert isinstance(fashion, FashionMnistDataset) 
             assert len(fashion) == 70000  # 60k train + 10k test
             
             # Test alternative naming
-            cifar = create_dataset("cifar-10")
+            cifar = create_dataset("cifar-10", root=temp_data_dir)
             assert isinstance(cifar, Cifar10Dataset)
             assert len(cifar) == 60000  # 50k train + 10k test
             
@@ -427,30 +431,6 @@ class TestPyTorchIntegration:
         except Exception as e:
             logger.error(f"Augmentation transforms test failed: {e}")
             raise
-
-# TODO fictures already in conftest, examine if they work
-# # Pytest fixtures and utilities
-# @pytest.fixture(scope="session")
-# def project_root():
-#     """Get the project root directory."""
-#     return Path(__file__).parent.parent
-
-
-# @pytest.fixture(scope="session")
-# def data_root(project_root):
-#     """Get the data directory."""
-#     return project_root / "data"
-
-
-# @pytest.fixture
-# def temp_dataset_dir():
-#     """Create a temporary directory for dataset tests."""
-#     temp_dir = Path(tempfile.mkdtemp())
-#     yield temp_dir
-#     # Cleanup
-#     if temp_dir.exists():
-#         shutil.rmtree(temp_dir)
-
 
 # Run specific test if called directly
 if __name__ == "__main__":
