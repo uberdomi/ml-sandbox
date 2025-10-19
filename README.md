@@ -164,7 +164,19 @@ uv run pytest -m "not download"  # Skip tests requiring downloads
 
 # Run with coverage report
 uv run pytest --cov=src --cov-report=html
+
+# View the coverage report in your browser
+xdg-open htmlcov/index.html  # Linux
+# or open htmlcov/index.html  # macOS
+# or start htmlcov/index.html  # Windows
+# or manually open: file:///path/to/project/htmlcov/index.html
 ```
+
+The HTML coverage report shows:
+- Overall coverage percentage for your project
+- Line-by-line coverage (which lines were executed during tests)
+- Missing coverage (lines not covered by tests, highlighted in red)
+- Coverage by module/file - click on files to see detailed coverage
 
 ### Code Formatting and Linting
 
