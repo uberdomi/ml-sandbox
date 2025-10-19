@@ -49,7 +49,7 @@ class SupportedDatasets(Enum):
     """Enum of supported datasets."""
     MNIST = auto()
     FASHION_MNIST = auto()
-    CIFAR10 = auto()
+    CIFAR_10 = auto()
 
 
 def list_supported_datasets() -> List[str]:
@@ -107,13 +107,18 @@ def create_dataset(
     
     # If string is passed, convert to enum
     if isinstance(dataset, str):
-        dataset = SupportedDatasets[dataset.upper()]
+        dataset_cls = getattr(SupportedDatasets, dataset.upper(), None)
+        
+        if dataset_cls is None:
+            raise ValueError(f"Unsupported dataset name: {dataset}")
+        
+        dataset = dataset_cls
     
     # Map enum to dataset classes
     dataset_class_map = {
         SupportedDatasets.MNIST: MnistDataset,
         SupportedDatasets.FASHION_MNIST: FashionMnistDataset,
-        SupportedDatasets.CIFAR10: Cifar10Dataset,
+        SupportedDatasets.CIFAR_10: Cifar10Dataset,
     }
     
     if dataset not in dataset_class_map:
