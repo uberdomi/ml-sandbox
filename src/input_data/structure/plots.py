@@ -13,13 +13,32 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
+# --- Global plotting display manager ---
+
+import threading
+
+class DisablePlottingDisplay:
+    _state = threading.local()
+
+    def __enter__(self):
+        self.prev = getattr(self._state, "show", True)
+        self._state.show = False
+        return self
+
+    def __exit__(self, *args):
+        self._state.show = self.prev
+
+    @classmethod
+    def show_plot(cls):
+        return getattr(cls._state, "show", True)
+
+
 # --- Single Sample Plotting Functions ---
 
 def plot_sample_grayscale(
     tensor: torch.Tensor, 
     label: Optional[Union[int, str]] = None,
     title: Optional[str] = None,
-    show: bool = True,
     figsize: Tuple[int, int] = (6, 6),
     cmap: str = 'gray',
     show_axes: bool = False,
@@ -32,7 +51,6 @@ def plot_sample_grayscale(
         tensor: Input tensor of shape (H, W), (H, W, 1) or (1, H, W)
         label: Optional label to display in title
         title: Custom title for the plot
-        show: Whether to display the plot immediately
         figsize: Figure size as (width, height)
         cmap: Colormap for grayscale visualization
         show_axes: Whether to show axis ticks and labels
@@ -93,7 +111,7 @@ def plot_sample_grayscale(
     if save_path:
         fig.savefig(save_path, bbox_inches='tight', dpi=150)
 
-    if show:
+    if DisablePlottingDisplay.show_plot():
         plt.show()
 
     return fig, ax
@@ -103,7 +121,6 @@ def plot_sample_rgb(
     tensor: torch.Tensor,
     label: Optional[Union[int, str]] = None,
     title: Optional[str] = None,
-    show: bool = True,
     figsize: Tuple[int, int] = (6, 6),
     show_axes: bool = False,
     save_path: Optional[str] = None,
@@ -116,7 +133,6 @@ def plot_sample_rgb(
         tensor: Input tensor of shape (3, H, W) or (H, W, 3)
         label: Optional label to display in title
         title: Custom title for the plot
-        show: Whether to display the plot immediately
         figsize: Figure size as (width, height)
         show_axes: Whether to show axis ticks and labels
         save_path: Optional path to save the figure
@@ -181,7 +197,7 @@ def plot_sample_rgb(
     if save_path:
         fig.savefig(save_path, bbox_inches='tight', dpi=150)
         
-    if show:
+    if DisablePlottingDisplay.show_plot():
         plt.show()
 
     return fig, ax
@@ -242,7 +258,6 @@ def plot_samples_grayscale(
     labels: Optional[List[Union[int, str]]] = None,
     suptitle: Optional[str] = None,
     titles: Optional[List[str]] = None,
-    show: bool = True,
     figsize: Optional[Tuple[int, int]] = None,
     cols: Optional[int] = None,
     cmap: str = 'gray',
@@ -257,7 +272,6 @@ def plot_samples_grayscale(
         labels: Optional list of labels for each tensor
         suptitle: Main title for the entire figure
         titles: Optional list of custom titles for each subplot
-        show: Whether to display the plot immediately
         figsize: Figure size as (width, height). Auto-calculated if None
         cols: Number of columns in subplot grid. Auto-calculated if None
         cmap: Colormap for grayscale visualization
@@ -355,7 +369,7 @@ def plot_samples_grayscale(
     if save_path:
         fig.savefig(save_path, bbox_inches='tight', dpi=150)
     
-    if show:
+    if DisablePlottingDisplay.show_plot():
         plt.show()
     
     return fig, axes[:n_samples]
@@ -366,7 +380,6 @@ def plot_samples_rgb(
     labels: Optional[List[Union[int, str]]] = None,
     suptitle: Optional[str] = None,
     titles: Optional[List[str]] = None,
-    show: bool = True,
     figsize: Optional[Tuple[int, int]] = None,
     cols: Optional[int] = None,
     show_axes: bool = False,
@@ -381,7 +394,6 @@ def plot_samples_rgb(
         labels: Optional list of labels for each tensor
         suptitle: Main title for the entire figure
         titles: Optional list of custom titles for each subplot
-        show: Whether to display the plot immediately
         figsize: Figure size as (width, height). Auto-calculated if None
         cols: Number of columns in subplot grid. Auto-calculated if None
         show_axes: Whether to show axis ticks and labels
@@ -488,7 +500,7 @@ def plot_samples_rgb(
     if save_path:
         fig.savefig(save_path, bbox_inches='tight', dpi=150)
 
-    if show:
+    if DisablePlottingDisplay.show_plot():
         plt.show()
 
     return fig, axes[:n_samples]
