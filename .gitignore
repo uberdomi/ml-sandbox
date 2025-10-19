@@ -76,3 +76,6 @@ venv/
 # Downloaded data
 data/
 demo_data/
+
+# Logging data
+logs/
