@@ -429,22 +429,21 @@ class Trainer:
 # --- Implementations ---
 
 
-class TargetTrainer(Trainer):
-    """Trainer for target-specific tasks."""
+class Classifier(Trainer):
+    """Classifier model trainer. Implements the usage of the model data input, where the loss is calculated w.r.t. the target class labels."""
 
-    @abstractmethod
-    def get_loss_function(self) -> nn.modules.loss._Loss:
-        pass
-
-    def set_loss_function(self, value: nn.modules.loss._Loss):
-        self._loss_function = value
-
-    loss_function = property(
-        get_loss_function,
-        set_loss_function,
-        None,
-        """Loss function used for training and validation.""",
-    )
+    def __init__(self, binary: bool = False, *args, **kwargs):
+        """
+        Args:
+            binary: Whether to use binary classification (Binary Cross Entropy Loss) or multi-class classification (Cross Entropy Loss).
+            *args: Additional arguments for the base Trainer class.
+            **kwargs: Additional keyword arguments for the base Trainer class.
+        """
+        super().__init__(*args, **kwargs)
+        if binary:
+            self.loss_function = nn.BCEWithLogitsLoss()
+        else:
+            self.loss_function = nn.CrossEntropyLoss()
 
     @override
     def move_batch_to_device(self, batch: Any) -> Any:
@@ -463,11 +462,10 @@ class TargetTrainer(Trainer):
     def calculate_train_batch_loss(self, batch: Any) -> Any:
         *inputs, targets = batch
 
-        outputs = self.model(*inputs)
-        targets_noisy = targets + self.weight_random_noise * torch.randn_like(targets)
+        logits = self.model(*inputs)
 
-        # Compute the loss and apply regularization
-        loss = self.loss_function(outputs, targets_noisy.squeeze(-1))
+        # Don't add noise for classification tasks; compute the loss and apply regularization
+        loss = self.loss_function(logits, targets)
 
         loss += self.calculate_regularization()
 
@@ -478,30 +476,9 @@ class TargetTrainer(Trainer):
         *inputs, targets = batch
 
         prediction = self.model(*inputs)
-        loss = self.loss_function(prediction, targets.squeeze(-1))
+        loss = self.loss_function(prediction, targets)
 
         return loss
-
-
-class Classifier(TargetTrainer):
-    """Classifier model trainer. Implements the usage of the model data input, where the loss is calculated w.r.t. the target class labels."""
-
-    def __init__(self, binary: bool = False, *args, **kwargs):
-        """
-        Args:
-            binary: Whether to use binary classification (Binary Cross Entropy Loss) or multi-class classification (Cross Entropy Loss).
-            *args: Additional arguments for the base Trainer class.
-            **kwargs: Additional keyword arguments for the base Trainer class.
-        """
-        super().__init__(*args, **kwargs)
-        if binary:
-            self.loss_fun = nn.BCEWithLogitsLoss()
-        else:
-            self.loss_fun = nn.CrossEntropyLoss()
-
-    @override
-    def get_loss_function(self) -> nn.modules.loss._Loss:
-        return self.loss_fun
 
 
 class Regressor(Trainer):
@@ -516,12 +493,46 @@ class Regressor(Trainer):
         """
         super().__init__(*args, **kwargs)
         if loss_function == "MSE":
-            self.loss_fun = nn.MSELoss()
+            self.loss_function = nn.MSELoss()
         elif loss_function == "L1":
-            self.loss_fun = nn.L1Loss()
+            self.loss_function = nn.L1Loss()
         else:
             raise ValueError(f"Unsupported loss function: {loss_function}")
 
     @override
-    def get_loss_function(self) -> nn.modules.loss._Loss:
-        return self.loss_fun
+    def move_batch_to_device(self, batch: Any) -> Any:
+        # Discard the targets from the batch and move to device
+        *inputs, targets = batch
+        inputs = [
+            inp.to(self.device) if isinstance(inp, torch.Tensor) else inp
+            for inp in inputs
+        ]
+
+        return (*inputs,)
+
+    @override
+    def calculate_train_batch_loss(self, batch: Any) -> Any:
+        # A tuple of inputs
+        inputs = batch
+
+        # Should have the same dimensions as inputs
+        outputs = self.model(*inputs)
+        inputs_noisy = inputs + self.weight_random_noise * torch.randn_like(inputs)
+
+        # Compute the loss and apply regularization
+        loss = self.loss_function(outputs, inputs_noisy)
+
+        loss += self.calculate_regularization()
+
+        return loss
+
+    @override
+    def calculate_validation_batch_loss(self, batch: Any) -> Any:
+        # A tuple of inputs
+        inputs = batch
+
+        # Should have the same dimensions as inputs
+        outputs = self.model(*inputs)
+        loss = self.loss_function(outputs, inputs)
+
+        return loss
