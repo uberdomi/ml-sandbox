@@ -1,26 +1,24 @@
 """Trainer"""
 
 # Typing
-from typing import Any, Optional, Literal, NamedTuple, override
 from abc import abstractmethod
+from typing import Any, Literal, NamedTuple, Optional, override
+
+# Helper libraries
+from logging import Logger
+from tqdm import tqdm
+import numpy as np
+import pandas as pd
 
 # Machine learning
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
-
-# Logging
-from logging import Logger
-
-from .log_utils import get_logger, get_summary_writer
 
 # Utility classes
 from .early_stopping import EarlyStopper
+from .log_utils import get_logger, get_summary_writer
 from .regularization import Regularizer
-
 
 # --- Utility functions ---
 
@@ -447,25 +445,20 @@ class Classifier(Trainer):
 
     @override
     def move_batch_to_device(self, batch: Any) -> Any:
-        *inputs, targets = batch
-        inputs = [
-            inp.to(self.device) if isinstance(inp, torch.Tensor) else inp
-            for inp in inputs
-        ]
-        targets = (
-            targets.to(self.device) if isinstance(targets, torch.Tensor) else targets
-        )
+        inputs, labels = batch
+        inputs = inputs.to(self.device) if isinstance(inputs, torch.Tensor) else inputs
+        labels = labels.to(self.device) if isinstance(labels, torch.Tensor) else labels
 
-        return (*inputs, targets)
+        return (inputs, labels)
 
     @override
     def calculate_train_batch_loss(self, batch: Any) -> Any:
-        *inputs, targets = batch
+        inputs, labels = batch
 
-        logits = self.model(*inputs)
+        logits = self.model(inputs)
 
         # Don't add noise for classification tasks; compute the loss and apply regularization
-        loss = self.loss_function(logits, targets)
+        loss = self.loss_function(logits, labels)
 
         loss += self.calculate_regularization()
 
@@ -473,10 +466,10 @@ class Classifier(Trainer):
 
     @override
     def calculate_validation_batch_loss(self, batch: Any) -> Any:
-        *inputs, targets = batch
+        inputs, labels = batch
 
-        prediction = self.model(*inputs)
-        loss = self.loss_function(prediction, targets)
+        logits = self.model(inputs)
+        loss = self.loss_function(logits, labels)
 
         return loss
 
@@ -502,13 +495,10 @@ class Regressor(Trainer):
     @override
     def move_batch_to_device(self, batch: Any) -> Any:
         # Discard the targets from the batch and move to device
-        *inputs, targets = batch
-        inputs = [
-            inp.to(self.device) if isinstance(inp, torch.Tensor) else inp
-            for inp in inputs
-        ]
+        inputs, labels = batch
+        inputs = inputs.to(self.device) if isinstance(inputs, torch.Tensor) else inputs
 
-        return (*inputs,)
+        return inputs
 
     @override
     def calculate_train_batch_loss(self, batch: Any) -> Any:
@@ -516,7 +506,7 @@ class Regressor(Trainer):
         inputs = batch
 
         # Should have the same dimensions as inputs
-        outputs = self.model(*inputs)
+        outputs = self.model(inputs)
         inputs_noisy = inputs + self.weight_random_noise * torch.randn_like(inputs)
 
         # Compute the loss and apply regularization
@@ -532,7 +522,7 @@ class Regressor(Trainer):
         inputs = batch
 
         # Should have the same dimensions as inputs
-        outputs = self.model(*inputs)
+        outputs = self.model(inputs)
         loss = self.loss_function(outputs, inputs)
 
         return loss
