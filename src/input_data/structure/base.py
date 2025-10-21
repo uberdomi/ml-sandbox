@@ -7,7 +7,6 @@ utilities used by all dataset implementations.
 
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Literal, Optional, Union, Tuple, Callable, List, Dict
 from dataclasses import dataclass
