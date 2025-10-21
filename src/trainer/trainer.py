@@ -17,10 +17,12 @@ import pandas as pd
 
 # Logging
 from logging import Logger
+
 from .log_utils import get_logger, get_summary_writer
 
 # Utility classes
 from .early_stopping import EarlyStopper
+from .regularization import Regularizer
 
 
 # --- Utility functions ---
@@ -68,11 +70,7 @@ class TrainingResults(NamedTuple):
 class Trainer:
     logger: Optional[Logger] = None
     early_stopper: Optional[EarlyStopper] = None
-    # Regularization parameters
-    regularization: bool = False
-    regularization_weight: float
-    regularization_weight2: float
-    regularization_method: Literal["L1","L2","Elastic"]
+    regularizer: Optional[Regularizer] = None
     weight_random_noise: float = 0.0
 
     def __init__(
@@ -108,63 +106,42 @@ class Trainer:
             self.logger.info(message)
 
     # --- Regularization ---
-
-    def set_regularization(
+    
+    def initialize_regularization(
         self,
         regularization: bool=True,
         method: Literal["L1","L2","Elastic"] = 'L1',
         weight: float=0.1,
         weight2: float=0.1,
-    ) -> None:
+    ) -> 'Trainer':
         """
-        Sets the parameters for regularization.
+        Initializes a regularization strategy.
+        
         Args:
-            regularization: Bool to activate / deactivate regularization.
             method: Method used for regularization. Supported are "L1", "L2" and "Elastic".
             weight: Weight for the penalty term.
             weight2: Weight for the l2 regression in case of the elastic regularization.
 
-        Returns: None
+        Returns:
+            self reference, to chain the initialization methods.
         """
-        self.regularization = regularization
-        self.regularization_method = method
-        self.regularization_weight = weight
-        self.regularization_weight2 = weight2
+        self.regularizer = Regularizer(
+            method=method,
+            weight=weight,
+            weight2=weight2
+        )
 
         self.log_info(f"Regularization set to {regularization} with the method {method} and weights beta1 = {weight}, beta2 = {weight2}")
-
-    def calculate_sum_weights(self, p: int):
-        """
-        Calculates the sum of Lp norms to the power p of all weight matrices.
-        Args:
-            p: Power factor.
-
-        Returns:
-            Sum of all Lp norms to the power of p.
-        """
-        # Don't include NormLayers and biases in the regularization
-        return sum(param.abs().pow(p).sum() for name, param in self.model.named_parameters()
-                    if "bias" not in name and "norm" not in name)
-
-    def apply_regularization(self) -> float:
-        """
-        Calculates the proper regularization terms for the weight matrices.
-
-        Returns:
-            The regularization term to be added to the loss function.
-        """
-        if self.regularization_method == "L1":
-            sum_params = self.calculate_sum_weights(1)
-            return self.regularization_weight * sum_params
-        elif self.regularization_method == "L2":
-            sum_params = self.calculate_sum_weights(2)
-            return self.regularization_weight * sum_params
-        elif self.regularization_method == "Elastic":
-            sum_params = self.calculate_sum_weights(1)
-            sum_params2 = self.calculate_sum_weights(2)
-            return self.regularization_weight * sum_params + self.regularization_weight2 * sum_params2
-        else:
-            return 0
+        
+        return self
+        
+    def calculate_regularization(self) -> float:
+        """Calculate the regularization term based on the selected method."""
+        
+        if self.regularizer is None:
+            return 0.0
+        
+        return self.regularizer.apply_regularization(self.model.named_parameters())
 
     # --- Early stopping ---
 
@@ -175,6 +152,13 @@ class Trainer:
     ) -> 'Trainer':
         """
         Initializes the early stopping mechanism.
+        
+        Args:
+            patience (int): Number of epochs to wait for improvement before stopping.
+            min_delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+
+        Returns:
+            self reference, to chain the initialization methods.
         """
         self.early_stopper = EarlyStopper(patience=patience, min_delta=delta)
 
@@ -193,6 +177,7 @@ class Trainer:
         """
         if self.early_stopper is None:
             return False
+        
         return self.early_stopper(validation_loss)
 
     # --- Dataset specific methods ---
@@ -459,8 +444,8 @@ class TargetTrainer(Trainer):
 
         # Compute the loss and apply regularization
         loss = self.loss_function(outputs, targets_noisy.squeeze(-1))
-        if self.regularization:
-            loss += self.apply_regularization()
+
+        loss += self.calculate_regularization()
 
         return loss
 
