@@ -62,3 +62,20 @@ maildir
 # IDE files
 .vscode/
 .idea/
+
+# Virtual environments
+venv/
+.venv/
+
+# Saved models
+*.pth
+*.p
+*.model
+*.empty
+
+# Downloaded data
+data/
+demo_data/
+
+# Logging data
+logs/

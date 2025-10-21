@@ -1,0 +1,196 @@
+# --- Basic info ---
+[project]
+name = "ml-sandbox"
+version = "0.1.0"
+description = "A machine learning sandbox project for experimentation and learning"
+readme = "README.md"
+authors = [
+    {name = "Dominik Bereżański", email = "domberez@gmail.com"},
+    {name = "Paul Hoheisel", email = "paul.hoheisel@example.com"}
+]
+maintainers = [
+    {name = "Dominik Bereżański", email = "domberez@gmail.com"},
+    {name = "Paul Hoheisel", email = "paul.hoheisel@example.com"}
+]
+keywords = ["machine-learning", "data-science", "python", "jupyter"]
+
+# --- Dependencies ---
+requires-python = ">=3.12"
+dependencies = [
+    # Core numerical and data processing
+    "numpy>=2.0",
+    "pandas>=2.0",
+    # Image processing
+    "pillow>=11.0",
+    # Data visualization
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    # Progress bars and utilities
+    "tqdm>=4.66",
+    # Jupyter notebook support
+    "ipykernel>=6.29",
+    "ipython>=9.0",
+    "jupyter-client>=8.6",
+    "jupyter-core>=5.7",
+    # Testing
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "tensorboard>=2.20.0",
+]
+
+[project.optional-dependencies]
+# PyTorch CPU version (default, no CUDA support)
+# Install with: uv sync --extra cpu
+cpu = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+]
+
+# PyTorch with CUDA 12.6 support (for NVIDIA GPUs)
+# Install with: uv sync --extra cu126
+# NVIDIA CUDA libraries (cublas, cudnn, cusparse, etc.) are automatically bundled
+cu126 = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+]
+
+# Development dependencies
+# Install with: uv sync --extra dev
+dev = [
+    "black>=24.0",
+    "ruff>=0.1.0",
+]
+
+# Full Jupyter Lab environment
+# Install with: uv sync --extra jupyter
+jupyter = [
+    "jupyterlab>=4.0",
+    "notebook>=7.0",
+    "ipywidgets>=8.1",
+]
+
+# Build system
+[build-system]
+requires = ["setuptools>=70.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ============================================================================
+# UV Configuration
+# ============================================================================
+
+# Conflict resolution: prevent installing both CPU and CUDA PyTorch versions
+[tool.uv]
+conflicts = [
+    [
+        { extra = "cpu" },
+        { extra = "cu126" },
+    ],
+]
+
+# ============================================================================
+# PyTorch Installation Configuration
+# ============================================================================
+# 
+# PyTorch is NOT installed by default. Choose one of the following:
+#
+# 1. CPU-only PyTorch (for systems without NVIDIA GPU or for development):
+#    uv sync --extra cpu
+#
+# 2. CUDA 12.6 PyTorch (for NVIDIA GPU support):
+#    uv sync --extra cu126
+#    NVIDIA CUDA libraries are automatically bundled with this version.
+#
+# 3. Install with all features (CUDA + Jupyter + Dev tools):
+#    uv sync --extra cu126 --extra jupyter --extra dev
+#
+# Note: You cannot install both cpu and cu126 extras simultaneously.
+# ============================================================================
+
+# PyTorch package indices
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+# Source configuration for PyTorch packages
+# Routes torch/torchvision to appropriate index based on selected extra
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu126", extra = "cu126" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu126", extra = "cu126" },
+]
+
+[project.urls]
+Homepage = "https://https://github.com/paulhoheisel/ml-sandbox"
+Repository = "https://github.com/paulhoheisel/ml-sandbox"
+Documentation = "https://github.com/paulhoheisel/ml-sandbox#readme"
+
+# Main directory for the source code
+[tool.setuptools]
+packages = ["src"]
+
+# [tool.setuptools.package-dir]
+# "" = "src"
+
+
+# --- Pytest configuration ---
+[tool.pytest.ini_options]
+minversion = "6.0"
+# Enhanced options: show durations of 5 slowest tests, strict markers, and detailed output
+addopts = [
+    "-ra",                    # Show extra test summary info for all except passed
+    "-q",                     # Quiet mode
+    "--strict-markers",       # Treat unregistered markers as errors
+    "--strict-config",        # Treat config warnings as errors
+    "--durations=5",          # Show 5 slowest test durations
+    "--tb=short",             # Shorter traceback format
+    "--disable-warnings",     # Disable pytest warnings (can be overridden with -W)
+]
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+# Test markers for organizing and filtering tests
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "download: marks tests that require internet connection (deselect with '-m \"not download\"')",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "unit: marks tests as unit tests",
+    "mnist: marks tests specific to MNIST dataset",
+    "fashion_mnist: marks tests specific to Fashion-MNIST dataset", 
+    "cifar10: marks tests specific to CIFAR-10 dataset",
+    "transform: marks tests that test data transformations",
+    "dataset_api: marks tests for the dataset API functions",
+    "error_handling: marks tests for error conditions",
+    "plots: marks tests for the plotting utilities",
+]
+# Filter warnings
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "error::FutureWarning",  # Treat FutureWarnings as errors to catch API changes
+]
+# Minimum test coverage (if using pytest-cov)
+# addopts = [..., "--cov=src", "--cov-report=term-missing", "--cov-fail-under=80"]

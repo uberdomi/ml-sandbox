@@ -1,0 +1,46 @@
+from typing import List, Type
+
+# Machine learning
+import torch
+import torch.nn as nn
+
+
+class Autoencoder(nn.Module):
+    """A simple Autoencoder model. Takes a list of dimensions for each layer."""
+
+    def __init__(self, dims: List[int], sigma: Type[nn.Module] = nn.ReLU):
+        """
+        Initializes the Autoencoder model.
+
+        Args:
+            dims (List[int]): A list of integers specifying the dimensions of each layer.
+            sigma (Type[nn.Module], optional): The activation function to use between layers. Defaults to nn.ReLU.
+        """
+        super(Autoencoder, self).__init__()
+        encoder_sequences = []
+        for i in range(len(dims) - 1):
+            if dims[i] <= 0:
+                raise ValueError("All dimensions must be positive integers.")
+
+            encoder_sequences.append(nn.Linear(dims[i], dims[i + 1]))
+            encoder_sequences.append(sigma())
+        self.encoder = nn.Sequential(*encoder_sequences)
+
+        decoder_sequences = []
+        for i in range(len(dims) - 1, 0, -1):
+            decoder_sequences.append(nn.Linear(dims[i], dims[i - 1]))
+            decoder_sequences.append(sigma())
+        self.decoder = nn.Sequential(*decoder_sequences)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Flatten the initial dimensions except the batch dimension
+        original_shape = x.shape
+        x = x.flatten(start_dim=1)
+
+        # Forward pass
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+
+        # Cast to the original shape
+        decoded = decoded.view(original_shape)
+        return decoded

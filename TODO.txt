@@ -1,0 +1,33 @@
+1) Dataloaders
+- [done] implement Dataset classes deriving from the pytorch base class to manage the datasets from predefined links, to be used as model inputs
+- [done] add file extracting utilities
+- [done] add plotting utilities
+- [done] allow for custom transformations of the input data
+- [done] allow to load into memory, if it suffices
+- [done] adjust the testing functions to the new functionalities
+^ [done] change the behavior in test_datasets
+^ [done] disable plot output in test_plots
+- review the url links
+
+2) Trainers
+- [done] add a trainer class that implements the training loop on pytorch objects: datasets, models and optimizers
+^ [done] take in the objects at init and manage them
+^ in the end can store the model and load it again
+- [done] divide up the big trainer class: e.g. split regularization and early stopping, move helper functions to further files.
+- write some tests testing the functionalities
+^ use objects from conftest
+- add helper classes/functions to store/load trained models
+
+3) Sample autoencoder
+- implement a sample autoencoder on the mnist dataset
+- implement a variational autoencoder on mnist to generate new numbers
+- after the functionalities in `src` are defined, merge the branch to main!
+
+4) Next steps
+- create a Readme in src which summarizes the sample notebooks
+- adjust the project Readme
+- Dataset: improve on the traning procedure, better use file extraction and memory, consider numpy-tensor tradeoffs (how to use tensors most efficient for data loading)
+- Dataset: make input data more abstract beyond labeled images - to also support other data types, can derive more subclasses to handle the input accordingly
+- create Docker containers to run sample (train) notebooks?
+- model idea: autoencoder on png photos and create a visualizing tool that interpolates (on the latent space) between images of various people, for example Barrack Obama and Ryan Gosling
+
