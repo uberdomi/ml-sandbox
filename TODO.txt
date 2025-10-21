@@ -4,16 +4,16 @@
 - [done] add plotting utilities
 - [done] allow for custom transformations of the input data
 - [done] allow to load into memory, if it suffices
-- adjust the testing functions to the new functionalities
-^ change the behavior in test_datasets
-^ disable plot output in test_plots
+- [done] adjust the testing functions to the new functionalities
+^ [done] change the behavior in test_datasets
+^ [done] disable plot output in test_plots
 - review the url links
 
 2) Trainers
-- add a trainer class that implements the training loop on pytorch objects: datasets, models and optimizers
-^ take in the objects at init and manage them
+- [done] add a trainer class that implements the training loop on pytorch objects: datasets, models and optimizers
+^ [done] take in the objects at init and manage them
 ^ in the end can store the model and load it again
-- divide up the big trainer class: e.g. split regularization and early stopping, move helper functions to further files.
+- [done] divide up the big trainer class: e.g. split regularization and early stopping, move helper functions to further files.
 - write some tests testing the functionalities
 ^ use objects from conftest
 - add helper classes/functions to store/load trained models
