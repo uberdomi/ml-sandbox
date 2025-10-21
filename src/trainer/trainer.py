@@ -19,6 +19,9 @@ import pandas as pd
 from logging import Logger
 from .log_utils import get_logger, get_summary_writer
 
+# Utility classes
+from .early_stopping import EarlyStopper
+
 
 # --- Utility functions ---
 
@@ -64,14 +67,7 @@ class TrainingResults(NamedTuple):
 
 class Trainer:
     logger: Optional[Logger] = None
-    # Early Stopping parameters
-    patience = 5
-    delta = 0
-    best_score = None
-    early_stopping = False
-    early_stop = False
-    counter = 0
-    best_model_state = None
+    early_stopper: Optional[EarlyStopper] = None
     # Regularization parameters
     regularization: bool = False
     regularization_weight: float
@@ -175,66 +171,32 @@ class Trainer:
 
     # --- Early stopping ---
 
-    def set_early_stopping(
+    def initialize_early_stopping(
         self,
-        early_stopping = True,
-        patience = 5,
-        delta = 0,
-    ) -> None:
+        patience: int = 5,
+        delta: float = 0.0,
+    ) -> 'Trainer':
         """
-        Used to initialize early stopping.
+        Initializes the early stopping mechanism.
+        """
+        self.early_stopper = EarlyStopper(patience=patience, min_delta=delta)
+
+        self.log_info(f"Early stopping initialized with parameters patience = {patience}, delta = {delta}")
+
+        return self
+
+    def check_early_stopping(self, validation_loss: float) -> bool:
+        """
+        Checks if early stopping condition is met.
         
         Args:
-            early_stopping: Bool to activate / deactivate early stopping.
-            patience: Number of epochs to stop earlier if there is no improvement.
-            delta: Minimal change of loss to qualify as improvement.
-
+            validation_loss: Current validation loss.
         Returns:
-            None
+            Bool indicating whether to stop training early.
         """
-        self.early_stopping = early_stopping
-        self.patience = patience
-        self.delta = delta
-
-        self.log_info(f"Early stopping set to {early_stopping} with parameters patience = {patience}, delta = {delta}")
-
-    def early_stopping_check(self, val_loss) -> None:
-        """
-        Checks early stopping conditions and sets corresponding flags.
-        
-        Args:
-            val_loss: The current epoch validation loss.
-
-        Returns:
-            None
-        """
-        score = val_loss
-        if self.best_score is None:
-            self.best_score = score
-            self.best_model_state = deepcopy(self.model.state_dict())
-        elif score > self.best_score - self.delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_score = score
-            self.best_model_state = deepcopy(self.model.state_dict())
-            self.counter = 0
-            self.early_stop = False
-
-    def load_best_model_early_stopping(self) -> None:
-        """
-        Loads the model with the lowest validation loss.
-        
-        Returns:
-            None
-
-        """
-        if self.early_stopping:
-            try:
-                self.model.load_state_dict(self.best_model_state)
-            except TypeError:
-                print("Best Model cannot be accessed - Probably no Validation Set was provided during training")
+        if self.early_stopper is None:
+            return False
+        return self.early_stopper(validation_loss)
 
     # --- Dataset specific methods ---
 
@@ -397,12 +359,10 @@ class Trainer:
             
                 val_pbar.close()
                 avg_val_loss = validation_loss / len(validation_dataloader)
-            
-                if self.early_stopping:
-                    self.early_stopping_check(validation_loss)
-                    if self.early_stop:
-                        self.log_info(">"*10 + " Early stopping condition fulfilled, exiting training loop")
-                        break
+
+                if self.check_early_stopping(validation_loss):
+                    self.log_info(">"*10 + " Early stopping condition fulfilled, exiting training loop")
+                    break
 
             # - Scheduler step -
             if self.scheduler is not None:
@@ -508,6 +468,5 @@ class NN_Trainer(Trainer):
         loss = self.loss_function(prediction, targets)
 
         return loss
-
 
 
