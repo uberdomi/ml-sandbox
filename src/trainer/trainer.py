@@ -1,7 +1,7 @@
 """Trainer"""
 
 # Typing
-from typing import Any, Optional, Literal, NamedTuple
+from typing import Any, Optional, Literal, NamedTuple, override
 from abc import abstractmethod
 
 # Helper libraries
@@ -79,7 +79,6 @@ class Trainer:
         self,
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
-        loss_function: nn.modules.loss._Loss = nn.MSELoss(),
         scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
         if_logging = True,
         scheduler_metric = False,
@@ -89,14 +88,12 @@ class Trainer:
         Args:
             model: Pytorch Module.
             optimizer: Optimizer connected to the Pytorch module.
-            loss_function: Optional Loss function. Default is MSELoss.
             scheduler: Optional Scheduler connected to the optimizer.
             if_logging: Enable logging throughout the training procedure.
             scheduler_metric: Use validation loss as a scheduler update step criterion (used only by the ReduceLROnPlateau scheduler).
         """
         self.model = model
         self.optimizer = optimizer
-        self.loss_function = loss_function
         self.scheduler = scheduler
         # Detect the current device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -429,9 +426,17 @@ class Trainer:
 
 
 # --- Implementations ---
-class NN_Trainer(Trainer):
-    """Neural network model trainer. Implements the usage of the model data input, where the loss is calculated w.r.t. the target values."""
 
+class TargetTrainer(Trainer):
+    """Trainer for target-specific tasks."""
+    
+    @property
+    @abstractmethod
+    def loss_function(self) -> nn.modules.loss._Loss:
+        """Loss function used for training and validation."""
+        pass
+    
+    @override
     def move_batch_to_device(
         self,
         batch: Any
@@ -442,6 +447,7 @@ class NN_Trainer(Trainer):
 
         return (*inputs, targets)
 
+    @override
     def calculate_train_batch_loss(
         self,
         batch: Any
@@ -458,6 +464,7 @@ class NN_Trainer(Trainer):
 
         return loss
 
+    @override
     def calculate_validation_batch_loss(
         self,
         batch: Any
@@ -465,8 +472,52 @@ class NN_Trainer(Trainer):
         *inputs, targets = batch
 
         prediction = self.model(*inputs)
-        loss = self.loss_function(prediction, targets)
+        loss = self.loss_function(prediction, targets.squeeze(-1))
 
         return loss
+
+class Classifier(TargetTrainer):
+    """Classifier model trainer. Implements the usage of the model data input, where the loss is calculated w.r.t. the target class labels."""
+    
+    def __init__(self, binary: bool = False, *args, **kwargs):
+        """
+        Args:
+            binary: Whether to use binary classification (Binary Cross Entropy Loss) or multi-class classification (Cross Entropy Loss).
+            *args: Additional arguments for the base Trainer class.
+            **kwargs: Additional keyword arguments for the base Trainer class.
+        """
+        super().__init__(*args, **kwargs)
+        if binary:
+            self.loss_function = nn.BCEWithLogitsLoss()
+        else:
+            self.loss_function = nn.CrossEntropyLoss()
+    
+    @override
+    @property
+    def loss_function(self) -> nn.modules.loss._Loss:
+        return self.loss_function
+
+class Regressor(Trainer):
+    """Regressor model trainer. Implements the usage of the model data input, where the loss is calculated w.r.t. the target continuous values."""
+    
+    def __init__(self, loss_function: Literal["MSE", "L1"] = "MSE", *args, **kwargs):
+        """ 
+        Args:
+            loss_function: The loss function to use for training. Supported are "MSE" (Mean Squared Error) and "L1" (Mean Absolute Error).
+            *args: Additional arguments for the base Trainer class.
+            **kwargs: Additional keyword arguments for the base Trainer class.
+        """
+        super().__init__(*args, **kwargs)
+        if loss_function == "MSE":
+            self.loss_function = nn.MSELoss()
+        elif loss_function == "L1":
+            self.loss_function = nn.L1Loss()
+        else:
+            raise ValueError(f"Unsupported loss function: {loss_function}")
+
+    @override
+    @property
+    def loss_function(self) -> nn.modules.loss._Loss:
+        return self.loss_function
 
 
