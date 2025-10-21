@@ -19,7 +19,14 @@ from .input_data import (
     # Supported datasets enum
     SupportedDatasets,
     list_supported_datasets,
+)
 
+from .trainer import (
+    Trainer,
+)
+
+from .models import (
+    Autoencoder,
 )
 
 __version__ = "0.1.0"
