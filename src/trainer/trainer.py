@@ -109,7 +109,6 @@ class Trainer:
     
     def initialize_regularization(
         self,
-        regularization: bool=True,
         method: Literal["L1","L2","Elastic"] = 'L1',
         weight: float=0.1,
         weight2: float=0.1,
@@ -131,7 +130,7 @@ class Trainer:
             weight2=weight2
         )
 
-        self.log_info(f"Regularization set to {regularization} with the method {method} and weights beta1 = {weight}, beta2 = {weight2}")
+        self.log_info(f"Regularization initialized with the method {method} and weights beta1 = {weight}, beta2 = {weight2}")
         
         return self
         
@@ -271,7 +270,7 @@ class Trainer:
         train_dataloader: DataLoader,
         validation_dataloader: DataLoader = None,
         epochs = 100,
-        weight_random_noise: float = 0,
+        weight_random_noise: float = 0.0,
         val_frequency = 5,
         run_dir = 'logs'
     ) -> TrainingResults:
@@ -415,12 +414,15 @@ class Trainer:
 class TargetTrainer(Trainer):
     """Trainer for target-specific tasks."""
     
-    @property
     @abstractmethod
-    def loss_function(self) -> nn.modules.loss._Loss:
-        """Loss function used for training and validation."""
+    def get_loss_function(self) -> nn.modules.loss._Loss:
         pass
+
+    def set_loss_function(self, value: nn.modules.loss._Loss):
+        self._loss_function = value
     
+    loss_function = property(get_loss_function, set_loss_function, None, """Loss function used for training and validation.""")
+
     @override
     def move_batch_to_device(
         self,
@@ -473,14 +475,13 @@ class Classifier(TargetTrainer):
         """
         super().__init__(*args, **kwargs)
         if binary:
-            self.loss_function = nn.BCEWithLogitsLoss()
+            self.loss_fun = nn.BCEWithLogitsLoss()
         else:
-            self.loss_function = nn.CrossEntropyLoss()
+            self.loss_fun = nn.CrossEntropyLoss()
     
     @override
-    @property
-    def loss_function(self) -> nn.modules.loss._Loss:
-        return self.loss_function
+    def get_loss_function(self) -> nn.modules.loss._Loss:
+        return self.loss_fun
 
 class Regressor(Trainer):
     """Regressor model trainer. Implements the usage of the model data input, where the loss is calculated w.r.t. the target continuous values."""
@@ -494,15 +495,14 @@ class Regressor(Trainer):
         """
         super().__init__(*args, **kwargs)
         if loss_function == "MSE":
-            self.loss_function = nn.MSELoss()
+            self.loss_fun = nn.MSELoss()
         elif loss_function == "L1":
-            self.loss_function = nn.L1Loss()
+            self.loss_fun = nn.L1Loss()
         else:
             raise ValueError(f"Unsupported loss function: {loss_function}")
 
     @override
-    @property
-    def loss_function(self) -> nn.modules.loss._Loss:
-        return self.loss_function
+    def get_loss_function(self) -> nn.modules.loss._Loss:
+        return self.loss_fun
 
 

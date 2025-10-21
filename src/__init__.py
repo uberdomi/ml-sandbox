@@ -23,6 +23,8 @@ from .input_data import (
 
 from .trainer import (
     Trainer,
+    Regressor,
+    Classifier,
 )
 
 from .models import (
@@ -32,4 +34,4 @@ from .models import (
 __version__ = "0.1.0"
 __author__ = "ML Sandbox"
 
-__all__ = input_data.__all__
+__all__ = input_data.__all__ + trainer.__all__ + models.__all__

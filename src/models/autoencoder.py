@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Type
 
 # Machine learning
 import torch
@@ -10,7 +10,14 @@ import pandas as pd
 class Autoencoder(nn.Module):
     """A simple Autoencoder model. Takes a list of dimensions for each layer."""
 
-    def __init__(self, dims: List[int], sigma = nn.ReLU):
+    def __init__(self, dims: List[int], sigma: Type[nn.Module] = nn.ReLU):
+        """
+        Initializes the Autoencoder model.
+        
+        Args:
+            dims (List[int]): A list of integers specifying the dimensions of each layer.
+            sigma (Type[nn.Module], optional): The activation function to use between layers. Defaults to nn.ReLU.
+        """
         super(Autoencoder, self).__init__()
         encoder_sequences = []
         for i in range(len(dims)-1):

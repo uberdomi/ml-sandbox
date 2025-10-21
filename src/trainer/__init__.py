@@ -19,4 +19,14 @@ Example usage:
     dataset.show_random_samples()
 """
 
-from .trainer import Trainer
+from .trainer import (
+    Trainer,
+    Regressor,
+    Classifier,
+)
+
+__all__ = [
+    "Trainer",
+    "Regressor",
+    "Classifier",
+]
